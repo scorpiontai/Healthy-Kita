@@ -17,12 +17,13 @@ export class UsersService {
 
             const find = await users.findOne({
                 where: {
-                    username: username
+                    username: username,
+                    email: email
                 }, raw: true
             })
 
             if (find !== undefined && find !== null)
-                return `sudah ada username beranam ${username}`
+                return `sudah ada username beranama ${username} atau email beralamat ${email}`
             else
                 await users.create({
                     username: username,
