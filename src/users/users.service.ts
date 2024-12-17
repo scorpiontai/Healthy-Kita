@@ -32,7 +32,19 @@ export class UsersService {
     }
     async login(username: string, password: string): Promise<any> {
         try {
-            
+            const find = await users.findOne({
+                where: {
+                    username: username,
+                    password: password
+                }, raw: true
+            })
+
+
+            if (find.username.length > 0 && find.username.length > 0 && find.verify === 1)
+                return true
+            else
+                return false
+
         } catch (err) {
             console.error(err.message);
         }
