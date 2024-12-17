@@ -2,10 +2,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { users } from 'src/models/users.models';
 import * as argon2 from 'argon2'
+import { RandomcodeService } from 'src/randomcode/randomcode.service';
+import { NodemailerService } from 'src/nodemailer/nodemailer.service';
 
 @Injectable()
 export class UsersService {
-
+    constructor(private readonly randomCode: RandomcodeService,
+        private readonly mailserv: NodemailerService
+    ) { }
     async signup(username: string, password: string, email: string): Promise<any> {
         try {
 
@@ -30,6 +34,17 @@ export class UsersService {
             console.error(err.message);
         }
     }
+
+    async sendVerifyMessage(target: string): Promise<any> {
+        try {
+            const randomCoded = await this.randomCode.generateRandom()
+            await this.mailserv.sendMessage(target, `verifikasi`, `verifikasi link`, `<a href="http://localhost:4000/verify/email?code=${randomCoded}"`)
+            return `sukses mengirim kode verifikasi`
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
     async login(username: string, password: string): Promise<any> {
         try {
             const find = await users.findOne({
