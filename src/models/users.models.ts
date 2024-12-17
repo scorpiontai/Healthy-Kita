@@ -5,11 +5,11 @@ import { Table, Column, Model } from 'sequelize-typescript';
 @Table({ timestamps: false })
 export class Users extends Model {
     @Column
-    name: string;
+    username: string;
 
     @Column
-    age: number;
+    password: number;
 
     @Column
-    breed: string;
+    email: string;
 }
