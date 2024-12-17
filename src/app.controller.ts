@@ -1,12 +1,23 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Res, Req, Body } from '@nestjs/common';
 import { AppService } from './app.service';
-
-@Controller()
+import { Response, Request } from '@nestjs/common';
+import { UsersService } from './users/users.service';
+import { Users } from './users/DTO/users.dto';
+@Controller("api")
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly appService: AppService,
+    private readonly userService: UsersService
+  ) { }
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
+
+  @Post("signup/user")
+  async set(@Body() body: Users): Promise<any> {
+    try {
+      const { username, password, email } = body
+      const created = await this.userService.signup(username, password, email)
+      return ({ message: created })
+    } catch (err) {
+      console.error(err.message);
+    }
   }
 }
