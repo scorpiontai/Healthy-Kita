@@ -20,4 +20,14 @@ export class AppController {
       console.error(err.message);
     }
   }
+  @Post("login/user")
+  async login(@Body() body: Users): Promise<any> {
+    try {
+      const { username, password } = body
+      const loginned = await this.userService.login(username, password)
+      return ({ message: loginned })
+    } catch (err) {
+      console.error(err.message);
+    }
+  }
 }
