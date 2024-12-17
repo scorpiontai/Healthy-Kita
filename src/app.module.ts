@@ -7,11 +7,12 @@ import { UsersModule } from './users/users.module';
 import { SequelizeModule } from '@nestjs/sequelize';
 import * as dotenv from 'dotenv';
 import { redisClientFactory } from './redisClient/redis.client';
+import { NodemailerService } from './nodemailer/nodemailer.service';
 
 @Module({
   imports: [UsersModule],
   controllers: [AppController],
-  providers: [AppService, UsersService,redisClientFactory
+  providers: [AppService, UsersService,redisClientFactory, NodemailerService
   ],
 })
 export class AppModule { }
