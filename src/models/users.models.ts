@@ -12,4 +12,7 @@ export class users extends Model {
 
     @Column
     email: string;
+
+    @Column
+    verify: number
 }
