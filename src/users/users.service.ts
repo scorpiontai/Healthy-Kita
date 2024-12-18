@@ -14,8 +14,9 @@ export class UsersService {
     ) { }
     async signup(username: string, password: string, email: string): Promise<any> {
         try {
+            if (!username && !password && !email)
+                return "harap masukkan semua inputan"
 
-            const hashPw = await argon2.hash(password)
 
             const find = await users.findOne({
                 where: {
@@ -29,10 +30,10 @@ export class UsersService {
             else
                 await users.create({
                     username: username,
-                    password: password,
+                    password: await argon2.hash(password),
                     email: email
                 })
-                await this.sendVerifyMessage(email) //send verify
+            await this.sendVerifyMessage(email) //send verify
             return `sukses untuk membuat akun bernama ${username}, kami telah mengirimlan link verifikasi ke email ${email}`
         } catch (err) {
             console.error(err.message);
@@ -52,18 +53,22 @@ export class UsersService {
 
     async login(username: string, password: string): Promise<any> {
         try {
+
+            if (!username && !password)
+                return "harap masukkan semua inputan"
+
             const find = await users.findOne({
                 where: {
                     username: username,
-                    password: password
                 }, raw: true
             })
 
-
-            if (find.username.length > 0 && find.username.length > 0 && find.verify === 1)
+            const verif = await argon2.verify(find.password, password)
+            if (find && verif) {
                 return true
-            else
+            } else {
                 return false
+            }
 
         } catch (err) {
             console.error(err.message);
