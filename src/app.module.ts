@@ -12,9 +12,17 @@ import { RedisService } from './redis/redis.service';
 import { RedisModule } from './redis/redis.module';
 import { RandomcodeService } from './randomcode/randomcode.service';
 import { VerifyController } from './verify/verify.controller';
-
+import { JwtModule } from '@nestjs/jwt';
+import {resolve} from 'path'
+dotenv.config({ path: resolve('./src/.env') });
 @Module({
-  imports: [UsersModule, RedisModule],
+  imports: [UsersModule, RedisModule,
+    JwtModule.register({
+      global:true,
+      secret: process.env.SECREET_JWT,
+      signOptions: {expiresIn: "10d"}
+    }),
+  ],
   controllers: [AppController, VerifyController],
   providers: [AppService, UsersService,redisClientFactory, NodemailerService, RedisService, RandomcodeService
   ],

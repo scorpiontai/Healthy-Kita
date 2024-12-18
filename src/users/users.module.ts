@@ -6,7 +6,7 @@ import * as dotenv from 'dotenv';
 import {resolve} from 'path'
 dotenv.config({ path: resolve('./src/.env') });
 
-console.debug( process.env.MYSQL_HOST, process.env.MYSQL_PORT)
+
 @Module({
     imports: [SequelizeModule.forRoot({
         dialect: 'mysql',
