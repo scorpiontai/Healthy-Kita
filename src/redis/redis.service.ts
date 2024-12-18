@@ -32,4 +32,12 @@ export class RedisService {
             console.error(err.message);
         }
     }
+
+    async del(name: string): Promise<any> {
+        try {
+            await this.redis.del(name)
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
 }
