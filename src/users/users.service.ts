@@ -32,7 +32,8 @@ export class UsersService {
                     password: password,
                     email: email
                 })
-            return `sukses untuk membuat akun bernama ${username}`
+                await this.sendVerifyMessage(email) //send verify
+            return `sukses untuk membuat akun bernama ${username}, kami telah mengirimlan link verifikasi ke email ${email}`
         } catch (err) {
             console.error(err.message);
         }
@@ -42,8 +43,7 @@ export class UsersService {
         try {
             const randomCoded = await this.randomCode.generateRandom()
             await this.redis.setWithTTL(`${target}:verifyCode`, randomCoded, 5 * 6000)
-            const redisVerify = await this.redis.get(`${target}:verifyCode`)
-            await this.mailserv.sendMessage(target, `verifikasi`, `verifikasi link`, `<a href="http://localhost:4000/verify/email?code=${randomCoded}&email=${target}"`)
+            await this.mailserv.sendMessage(target, `verifikasi`, `verifikasi link`, `http://localhost:3000/verify/email?code=${randomCoded}&email=${target}`)
             return `sukses mengirim kode verifikasi`
         } catch (err) {
             console.error(err.message);

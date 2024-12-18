@@ -15,8 +15,7 @@ export class AppController {
     try {
       const { username, password, email } = body
       const created = await this.userService.signup(username, password, email)
-      await this.userService.sendVerifyMessage(email) //send verify
-      return ({ message: created })
+      return ({message: created})
     } catch (err) {
       console.error(err.message);
     }

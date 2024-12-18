@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import Redis from 'ioredis';
 
 @Injectable()
@@ -12,6 +12,7 @@ export class RedisService {
     async setWithTTL(name: string, value: any, ttl: number): Promise<any> {
         try {
             await this.redis.set(name, value, 'EX', ttl)
+            Logger.debug("set with ttl")
         } catch (err) {
             console.error(err.message);
         }

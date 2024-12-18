@@ -8,11 +8,15 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import * as dotenv from 'dotenv';
 import { redisClientFactory } from './redisClient/redis.client';
 import { NodemailerService } from './nodemailer/nodemailer.service';
+import { RedisService } from './redis/redis.service';
+import { RedisModule } from './redis/redis.module';
+import { RandomcodeService } from './randomcode/randomcode.service';
+import { VerifyController } from './verify/verify.controller';
 
 @Module({
-  imports: [UsersModule],
-  controllers: [AppController],
-  providers: [AppService, UsersService,redisClientFactory, NodemailerService
+  imports: [UsersModule, RedisModule],
+  controllers: [AppController, VerifyController],
+  providers: [AppService, UsersService,redisClientFactory, NodemailerService, RedisService, RandomcodeService
   ],
 })
 export class AppModule { }
