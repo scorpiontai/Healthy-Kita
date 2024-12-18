@@ -9,7 +9,7 @@ export class RedisService {
 
     }
 
-    async setWithTTL(name: string, value: any, ttl: string): Promise<any> {
+    async setWithTTL(name: string, value: any, ttl: number): Promise<any> {
         try {
             await this.redis.set(name, value, 'EX', ttl)
         } catch (err) {
@@ -20,6 +20,14 @@ export class RedisService {
     async set(name: string, value: any): Promise<any> {
         try {
             await this.redis.set(name, value)
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+    async get(name: string): Promise<any> {
+        try {
+            const redis = await this.redis.get(name)
+            return redis
         } catch (err) {
             console.error(err.message);
         }
