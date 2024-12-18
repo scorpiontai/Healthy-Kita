@@ -9,43 +9,35 @@
 
 <body>
 
-
     <script>
-        window.onload = async () => {
-
-            const username = "test"
-            const password = "ayam"
-                try {
-                    const response = await fetch(`http://localhost:3000/api/login/user`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ username:username, password:password }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Login gagal');
+        async function authenticate() {
+            try {
+                const response = await fetch('http://localhost:3000/verify/jwt', { 
+                    headers: {
+                        'Authorization': `${localStorage.getItem('auth_token')}` 
                     }
-                    const token = response.headers.get('token');
+                });
 
-                    console.log(token)
-                    if (token) {
-                        console.log('Token berhasil diterima:', token);
-                        localStorage.setItem('auth_token', token);
+                if (!response.ok) {
+                    if (response.status === 401) { 
+                        console.error('Unauthorized: Access denied.'); 
                     } else {
-                        console.log('Token tidak ditemukan di header');
+                        console.error('Error:', response.statusText); 
                     }
-
-                    const data = await response.json();
-                    return data;
-                } catch (error) {
-                    console.error('Login gagal:', error.message);
-                    throw error;
+                    return;
                 }
+
+                const data = await response.json();
+                console.log('Data from server:', data);
+
+            } catch (error) {
+                console.error('Authentication failed:', error);
+            }
         }
 
+        authenticate(); 
     </script>
+
 </body>
 
 </html>

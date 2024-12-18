@@ -26,13 +26,17 @@ export class AppController {
   async login(@Body() body: Users, @Res() res: Response): Promise<any> {
     try {
       const { username, password } = body
+
+      if (!username && !password)
+        return { message: "harap inputkan dengan benar" }
+
       const loginned = await this.userService.login(username, password)
-      console.debug(loginned)
+
       if (loginned) {
         const jwts = await this.jwt.signAsync({ userName: username })
         res.setHeader("token", jwts)
         res.header("Access-Control-Expose-Headers", "token");
-        res.status(200).json({message: loginned})
+        res.status(200).json({ message: loginned })
       }
     } catch (err) {
       console.error(err.message);

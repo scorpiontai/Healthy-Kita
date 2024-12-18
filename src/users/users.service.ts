@@ -60,6 +60,7 @@ export class UsersService {
             const find = await users.findOne({
                 where: {
                     username: username,
+                    verify: 1,
                 }, raw: true
             })
 

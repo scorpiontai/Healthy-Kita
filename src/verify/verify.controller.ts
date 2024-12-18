@@ -1,14 +1,19 @@
 import {
     Response, Request,
-    Logger
+    Logger,
+    UseGuards
 } from '@nestjs/common';
 import { Controller, Get, Post, Put, Delete, Res, Req, Body, Param, Query } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { GeneralGuard } from 'src/general/general.guard';
 import { users } from 'src/models/users.models';
 import { RedisService } from 'src/redis/redis.service';
-import { Users } from 'src/users/DTO/users.dto';
+import { Users } from 'src/users/DTO/users.dto'
 @Controller('verify')
 export class VerifyController {
-    constructor(private readonly redis: RedisService) { }
+    constructor(private readonly redis: RedisService,
+        private readonly jwt: JwtService
+    ) { }
     @Get("email")
     async verifyEmail(@Query("code") code: string, @Query("email") email: string): Promise<any> {
         try {
@@ -25,7 +30,6 @@ export class VerifyController {
                 find.verify === 0 ? await users.update({ verify: 1 }, { where: { email: email } }) : null
                 message = 'sukses terverifikasi'
             } else {
-                Logger.debug(null)
                 message = "failed"
             }
 
