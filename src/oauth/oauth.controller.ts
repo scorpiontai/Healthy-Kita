@@ -1,4 +1,4 @@
-import { Controller, UseGuards, Get, Post, Req, Res, Logger } from '@nestjs/common';
+import { Controller, UseGuards, Get, Post, Req, Res, Logger, Body } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { users } from 'src/models/users.models';
 
@@ -21,7 +21,6 @@ export class OauthController {
         try {
             const { accessToken, name, lastName, email } = req.user
 
-            let message
             if (!accessToken)
                 return res.status(400).json({ message: "token tidak ditemukan, harap coba ulangi atau hubungi developer" })
 
@@ -36,12 +35,31 @@ export class OauthController {
                     email: email,
                     verify: 1
                 })
-                message = `akun ${fullName} berhasil dibuat`
                 res.setHeader("token", accessToken)
             } else {
-                res.status(409).json({ message: "harap masukkan username, username akun google kamu sudah terpakai" })
+                res.status(409).json({ message: "harap masukkan username, username akun google anda sudah terpakai", email: email })
             }
-            return res.status(200).json({ message: message })
+            return res.status(200).json({ message: `akun ${fullName} berhasil dibuat` })
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
+    @Post("newname/google")
+    async newName(@Body() body: any, @Res() res): Promise<any> {
+        try {
+            const { newName, email } = body
+
+            if (!newName && !email)
+                return res.status(400)
+
+            const find = await users.findOne({ where: { username: newName }, raw: true })
+
+            if (find === undefined || find === null) {
+                await users.create({ username: newName, email: email, password: "oauth", verify: 1 })
+            } else {
+                res.status(409).json({ message: `mohon maaf, username ${newName} telah digunakan` })
+            }
         } catch (err) {
             console.error(err.message);
         }
