@@ -37,6 +37,8 @@ export class AppController {
         res.setHeader("token", jwts)
         res.header("Access-Control-Expose-Headers", "token");
         res.status(200).json({ message: loginned })
+      } else {
+        return ({ message: "gagal untuk mencoba login" })
       }
     } catch (err) {
       console.error(err.message);
