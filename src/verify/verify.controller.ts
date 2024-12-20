@@ -38,4 +38,13 @@ export class VerifyController {
             console.error(err.message);
         }
     }
+
+    @Get("token")
+    async verifyTokenBeforeNext(@Req() req: any): Promise<any> {
+        try {
+
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
 }

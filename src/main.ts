@@ -6,9 +6,9 @@ import * as cors from 'cors';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: '*',  // Mengizinkan semua domain
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],  // Metode yang diizinkan
-    allowedHeaders: ['Content-Type', 'Authorization', 'token'],  // Header yang diizinkan
+    origin: ['localhost:8080','localhost:7000'],  
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], 
+    allowedHeaders: ['Content-Type', 'Authorization', 'token'],  
   });
   await app.listen(3000);
 }

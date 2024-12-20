@@ -53,7 +53,7 @@ export class OauthController {
 
                 //jika berhasil, maka buat akun
                 const fullName = `${firstName} ${lastName}`
-                const find = await users.findOne({ where: { username: fullName }, raw: true })
+                const find = await users.findOne({ where: { username: fullName, email: email, password: "oauth" }, raw: true })
 
                 if (find === undefined || find === null) {
                     await users.create({
@@ -65,18 +65,9 @@ export class OauthController {
 
                     await this.redis.setWithTTL(`${email}:accessToken`, accessToken, 3600)
                 } else {
-
-
-                    const randomName = await this.users.randomUserName(fullName)
-                    await users.create({
-                        username: randomName,
-                        password: 'oauth',
-                        email: email,
-                        verify: 1
-                    })
-
+                    //logika changing
                     await this.redis.setWithTTL(`${email}:accessToken`, accessToken, 3600)
-
+                    findIfExistsToken // verify 
                 }
                 return res.status(200).json({ message: `akun berhasil dibuat` })
             } else {
