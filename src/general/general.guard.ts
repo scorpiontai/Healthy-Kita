@@ -27,13 +27,10 @@ export class GeneralGuard implements CanActivate {
 
       if (!authHeader)
         return false
+
       if (authHeader.startsWith('ey')) {
         const verif = await this.jwt.verifyAsync(authHeader)
         return verif.userName
-      } else {
-        const find = await axios.get(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${authHeader}`)
-        const dataGoogle = await find.data
-        return dataGoogle.email.length > 0 && dataGoogle.email !== undefined && dataGoogle.email !== null ? true : res.status(301).redirect(`http://localhost:8080/login`) // halaman login fron
       }
 
 
