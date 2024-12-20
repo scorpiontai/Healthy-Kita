@@ -1,60 +1,88 @@
-import { Controller, UseGuards, Get, Post, Req, Res, Logger, Body } from '@nestjs/common';
+import { Controller, UseGuards, Get, Post, Req, Res, Logger, Body, Param } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { users } from 'src/models/users.models';
 import { UsersService } from 'src/users/users.service';
-
+import axios from 'axios'
+import { RedisService } from 'src/redis/redis.service';
 @Controller('oauth')
 export class OauthController {
-    constructor(private readonly users: UsersService) { }
+    constructor(private readonly users: UsersService,
+        private readonly redis: RedisService
+    ) { }
 
     @Get("google")
     @UseGuards(AuthGuard('google'))
     async googleAuth(@Req() req): Promise<any> {
         try {
-            console.debug(req.user)
         } catch (err) {
             console.error(err.message);
         }
     }
+
+    async MediumOptions(email: string): Promise<any> {
+        try {
+            const findIfExistsToken = await this.redis.get(`${email}:accessToken`)
+            const endpointVerify = `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${findIfExistsToken}`
+
+
+            const areVerify = await axios.get(endpointVerify)
+            return areVerify.data.verified_email // return true or false
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
     @Get("google/callback")
     @UseGuards(AuthGuard('google'))
     async googleAuthRedirect(@Req() req, @Res() res): Promise<any> {
         try {
-            const { accessToken, name, lastName, email } = req.user
+            const { accessToken, firstName, lastName, email, picture } = req.user
 
-            if (!accessToken)
-                return res.status(400).json({ message: "token tidak ditemukan, harap coba ulangi atau hubungi developer" })
 
-            //jika berhasil, maka buat akun
-            const fullName = `${name} ${lastName}`
-            const find = await users.findOne({ where: { username: fullName }, raw: true })
+            //logic here 
+            // https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=
 
-            if (find === undefined || find === null) {
-                await users.create({
-                    username: fullName,
-                    password: 'oauth',
-                    email: email,
-                    verify: 1
-                })
-                res.setHeader("token", accessToken)
+            const findIfExistsToken = await this.MediumOptions(email)
+
+            if (!findIfExistsToken) {
+                if (!accessToken)
+                    return res.status(400).json({ message: "token tidak ditemukan, harap coba ulangi atau hubungi developer" })
+
+                //jika berhasil, maka buat akun
+                const fullName = `${firstName} ${lastName}`
+                const find = await users.findOne({ where: { username: fullName }, raw: true })
+
+                if (find === undefined || find === null) {
+                    await users.create({
+                        username: fullName,
+                        password: 'oauth',
+                        email: email,
+                        verify: 1
+                    })
+
+                    await this.redis.setWithTTL(`${email}:accessToken`, accessToken, 3600)
+                } else {
+
+
+                    const randomName = await this.users.randomUserName(fullName)
+                    await users.create({
+                        username: randomName,
+                        password: 'oauth',
+                        email: email,
+                        verify: 1
+                    })
+
+                    await this.redis.setWithTTL(`${email}:accessToken`, accessToken, 3600)
+
+                }
+                return res.status(200).json({ message: `akun berhasil dibuat` })
             } else {
-
-                const randomName = await this.users.randomUserName(name)
-                console.debug("random name debug", randomName)
-                /*
-                await users.create({
-                    username: randomName,
-                    password: 'oauth',
-                    email: email,
-                    verify: 1
-                })
-                res.setHeader("token", accessToken)
-                */
+                return res.status(301).json({ message: true })
             }
-            return res.status(200).json({ message: `akun ${fullName} berhasil dibuat` })
         } catch (err) {
             console.error(err.message);
         }
     }
+
 }
 

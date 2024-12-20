@@ -6,6 +6,7 @@ import { RandomcodeService } from 'src/randomcode/randomcode.service';
 import { NodemailerService } from 'src/nodemailer/nodemailer.service';
 import { RedisService } from 'src/redis/redis.service';
 import { randomString } from 'random-string';
+import { randomUUID } from 'crypto';
 @Injectable()
 export class UsersService {
     constructor(private readonly randomCode: RandomcodeService,
@@ -78,7 +79,8 @@ export class UsersService {
 
     async randomUserName(originName: string): Promise<any> { //random user name 
         try {
-            const randomFourLength = randomString({ length: 4 })
+            let randomFour: any = randomUUID()
+            let randomFourLength: any = Math.floor(randomFour.length / 2)
             const fullName = `${originName}_${randomFourLength}`
             return fullName
         } catch (err) {
