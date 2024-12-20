@@ -19,8 +19,11 @@ export class OauthController {
         }
     }
 
-    async MediumOptions(email: string): Promise<any> {
+    async HandlingIfAlreadyHaveToken(email: string): Promise<any> {
         try {
+            if (!email)
+                console.error("terjadi kesalahan sistem")
+
             const findIfExistsToken = await this.redis.get(`${email}:accessToken`)
             const endpointVerify = `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${findIfExistsToken}`
 
@@ -42,7 +45,7 @@ export class OauthController {
             //logic here 
             // https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=
 
-            const findIfExistsToken = await this.MediumOptions(email)
+            const findIfExistsToken = await this.HandlingIfAlreadyHaveToken(email)
 
             if (!findIfExistsToken) {
                 if (!accessToken)
