@@ -5,7 +5,7 @@ import * as argon2 from 'argon2'
 import { RandomcodeService } from 'src/randomcode/randomcode.service';
 import { NodemailerService } from 'src/nodemailer/nodemailer.service';
 import { RedisService } from 'src/redis/redis.service';
-
+import { randomString } from 'random-string';
 @Injectable()
 export class UsersService {
     constructor(private readonly randomCode: RandomcodeService,
@@ -71,6 +71,16 @@ export class UsersService {
                 return false
             }
 
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
+    async randomUserName(originName: string): Promise<any> { //random user name 
+        try {
+            const randomFourLength = randomString({ length: 4 })
+            const fullName = `${originName}_${randomFourLength}`
+            return fullName
         } catch (err) {
             console.error(err.message);
         }

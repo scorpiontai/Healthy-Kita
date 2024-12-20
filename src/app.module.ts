@@ -14,6 +14,8 @@ import { RandomcodeService } from './randomcode/randomcode.service';
 import { VerifyController } from './verify/verify.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { resolve } from 'path'
+import { OauthController } from './oauth/oauth.controller';
+import { Oauth2Service } from './oauth2/oauth2.service';
 dotenv.config({ path: resolve('./src/.env') });
 @Module({
   imports: [UsersModule, RedisModule,
@@ -23,8 +25,9 @@ dotenv.config({ path: resolve('./src/.env') });
       signOptions: { expiresIn: "10d" }
     }),
   ],
-  controllers: [AppController, VerifyController],
-  providers: [AppService, UsersService, redisClientFactory, NodemailerService, RedisService, RandomcodeService
+  controllers: [AppController, VerifyController,OauthController],
+  providers: [AppService, UsersService, redisClientFactory, NodemailerService, RedisService, RandomcodeService,
+    Oauth2Service
   ],
 })
 export class AppModule { }
