@@ -25,11 +25,15 @@ export class OauthController {
                 console.error("terjadi kesalahan sistem")
 
             const findIfExistsToken = await this.redis.get(`${email}:accessToken`)
-            const endpointVerify = `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${findIfExistsToken}`
+            if (findIfExistsToken) {
+                const endpointVerify = `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${findIfExistsToken}`
 
 
-            const areVerify = await axios.get(endpointVerify)
-            return areVerify.data.verified_email // return true or false
+                const areVerify = await axios.get(endpointVerify)
+                return areVerify.data.verified_email // return true or false
+            } else {
+                return false
+            }
         } catch (err) {
             console.error(err.message);
         }
@@ -65,7 +69,7 @@ export class OauthController {
 
                     await this.redis.setWithTTL(`${email}:accessToken`, accessToken, 3600)
                 } else {
-                    //logika changing
+                    //if acccount hass created, only set redis key store accessToken
                     await this.redis.setWithTTL(`${email}:accessToken`, accessToken, 3600)
                     findIfExistsToken // verify 
                 }

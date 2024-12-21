@@ -28,7 +28,7 @@ dotenv.config({ path: resolve('./src/.env') });
       signOptions: { expiresIn: "10d" }
     }),
   ],
-  controllers: [AppController, VerifyController,OauthController],
+  controllers: [AppController, VerifyController, OauthController],
   providers: [AppService, UsersService, redisClientFactory, NodemailerService, RedisService, RandomcodeService,
     Oauth2Service,
     TaskService
