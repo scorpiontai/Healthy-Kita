@@ -18,6 +18,7 @@ import { OauthController } from './oauth/oauth.controller';
 import { Oauth2Service } from './oauth2/oauth2.service';
 import { TaskService } from './task/task.service';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AskCommand } from './ask/ask.command';
 dotenv.config({ path: resolve('./src/.env') });
 @Module({
   imports: [UsersModule, RedisModule,
@@ -31,7 +32,8 @@ dotenv.config({ path: resolve('./src/.env') });
   controllers: [AppController, VerifyController, OauthController],
   providers: [AppService, UsersService, redisClientFactory, NodemailerService, RedisService, RandomcodeService,
     Oauth2Service,
-    TaskService
+    TaskService,
+    AskCommand
   ],
 })
 export class AppModule { }
