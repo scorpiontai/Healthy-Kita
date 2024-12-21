@@ -1,4 +1,4 @@
-(https://res.cloudinary.com/davsvplok/image/upload/v1734775173/sohfxqjnaplovqi2vk68.png)
+[view logo](https://res.cloudinary.com/davsvplok/image/upload/v1734775173/sohfxqjnaplovqi2vk68.png)
 
 this is App base dinacom project named Healthy Kita
 base on dinacom project for the theme Health and Well-being for the Next Generation
