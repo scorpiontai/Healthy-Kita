@@ -21,7 +21,7 @@ export class NodemailerService {
     async sendMessage(target: string, subject: string, text: string, html?: string): Promise<any> {
         try {
             const info = await this.transporter.sendMail({
-                from: `Lingkungan Kita" <${process.env.MAIL_HOST}>`,
+                from: `Healthy Kita" <${process.env.MAIL_HOST}>`,
                 to: target,
                 subject: subject,
                 text: text,
