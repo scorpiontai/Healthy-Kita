@@ -40,9 +40,10 @@ export class VerifyController {
     }
 
     @Get("token")
+    @UseGuards(GeneralGuard)
     async verifyTokenBeforeNext(@Req() req: any): Promise<any> {
         try {
-
+            return { message: true }
         } catch (err) {
             console.error(err.message);
         }

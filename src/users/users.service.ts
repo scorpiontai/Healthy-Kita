@@ -22,6 +22,9 @@ export class UsersService {
             if (!username && !password && !email)
                 return "harap masukkan semua inputan"
 
+            if (username.includes("@")) {
+                return "jangan ada simbol @ saat menyertakan nama"
+            }
 
             const find = await users.findOne({
                 where: {
