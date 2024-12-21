@@ -44,8 +44,7 @@ export class OauthController {
     async googleAuthRedirect(@Req() req, @Res() res): Promise<any> {
         try {
             const { accessToken, firstName, lastName, email, picture } = req.user
-
-
+            let message
             //logic here 
             // https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=
 
@@ -68,12 +67,14 @@ export class OauthController {
                     })
 
                     await this.redis.setWithTTL(`${email}:accessToken`, accessToken, 3600)
+                    message = `sukses untuk membuat akun ${fullName}`
                 } else {
                     //if acccount hass created, only set redis key store accessToken
                     await this.redis.setWithTTL(`${email}:accessToken`, accessToken, 3600)
-                    findIfExistsToken // verify 
+                    //verify
+                    return findIfExistsToken ? res.status(301).redirect(`http://localhost:8080/dahsboard`) : message = "ups..terjadi error, coba lagi nanti, jika kendala masih berlanjut. Harap hubungi pusat bantuan"
                 }
-                return res.status(200).json({ message: `akun berhasil dibuat` })
+                return res.status(200).json({ message: message })
             } else {
                 return res.status(301).json({ message: true })
             }
