@@ -16,9 +16,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { resolve } from 'path'
 import { OauthController } from './oauth/oauth.controller';
 import { Oauth2Service } from './oauth2/oauth2.service';
+import { TaskService } from './task/task.service';
+import { ScheduleModule } from '@nestjs/schedule';
 dotenv.config({ path: resolve('./src/.env') });
 @Module({
   imports: [UsersModule, RedisModule,
+    ScheduleModule.forRoot(),
     JwtModule.register({
       global: true,
       secret: process.env.SECREET_JWT,
@@ -27,7 +30,8 @@ dotenv.config({ path: resolve('./src/.env') });
   ],
   controllers: [AppController, VerifyController,OauthController],
   providers: [AppService, UsersService, redisClientFactory, NodemailerService, RedisService, RandomcodeService,
-    Oauth2Service
+    Oauth2Service,
+    TaskService
   ],
 })
 export class AppModule { }

@@ -7,11 +7,15 @@ import { NodemailerService } from 'src/nodemailer/nodemailer.service';
 import { RedisService } from 'src/redis/redis.service';
 import { randomString } from 'random-string';
 import { randomUUID } from 'crypto';
+import { Op } from 'sequelize';
+import { TaskService } from 'src/task/task.service';
+
 @Injectable()
 export class UsersService {
     constructor(private readonly randomCode: RandomcodeService,
         private readonly mailserv: NodemailerService,
-        private readonly redis: RedisService
+        private readonly redis: RedisService,
+        private readonly task: TaskService
     ) { }
     async signup(username: string, password: string, email: string): Promise<any> {
         try {
@@ -21,13 +25,15 @@ export class UsersService {
 
             const find = await users.findOne({
                 where: {
-                    username: username,
-                    email: email
+                    [Op.or]: {
+                        username: username,
+                        email: email
+                    }
                 }, raw: true
             })
 
             if (find !== undefined && find !== null)
-                return `sudah ada username beranama ${username} atau email beralamat ${email}`
+                return `sudah ada akun terdaftar`
             else
                 await users.create({
                     username: username,
@@ -36,6 +42,7 @@ export class UsersService {
                 })
             await this.sendVerifyMessage(email) //send verify
             return `sukses untuk membuat akun bernama ${username}, kami telah mengirimlan link verifikasi ke email ${email}`
+
         } catch (err) {
             console.error(err.message);
         }
@@ -44,9 +51,12 @@ export class UsersService {
     async sendVerifyMessage(target: string): Promise<any> {
         try {
             const randomCoded = await this.randomCode.generateRandom()
-            await this.redis.setWithTTL(`${target}:verifyCode`, randomCoded, 5 * 6000)
+            const keyName = `${target}:verifyCode` // key name for redis key
+            await this.redis.setWithTTL(keyName, randomCoded, 5 * 6000)
+            //mail action 
             await this.mailserv.sendMessage(target, `verifikasi`, `verifikasi link`, `http://localhost:3000/verify/email?code=${randomCoded}&email=${target}`)
-            return `sukses mengirim kode verifikasi`
+            this.task.scheduleDeleteFiveMinutes(keyName) //callback setTimeout to delete 
+            return `sukses mengirim kode verifikasi`  //delete in 5 minutes
         } catch (err) {
             console.error(err.message);
         }
@@ -58,15 +68,16 @@ export class UsersService {
             if (!username && !password)
                 return "harap masukkan semua inputan"
 
-            const find = await users.findOne({
-                where: {
-                    username: username,
-                    verify: 1,
+            let finding = username.includes("@") ? await users.findOne({
+                where:
+                {
+                    email: username, verify: 1
                 }, raw: true
-            })
+            }) : await users.findOne({ where: { username: username, verify: 1 } })
 
-            const verif = await argon2.verify(find.password, password)
-            if (find && verif) {
+
+            const verif = await argon2.verify(finding.password, password)
+            if (finding && verif) {
                 return true
             } else {
                 return false
