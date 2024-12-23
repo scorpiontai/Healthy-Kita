@@ -11,6 +11,9 @@ export class users extends Model {
     fullName: string;
 
     @Column
+    username: string
+
+    @Column
     password: string;
 
     @Column
