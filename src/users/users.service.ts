@@ -9,13 +9,16 @@ import { randomString } from 'random-string';
 import { randomUUID } from 'crypto';
 import { Op } from 'sequelize';
 import { TaskService } from 'src/task/task.service';
+import { EncService } from 'src/enc/enc.service';
+import axios from 'axios';
 
 @Injectable()
 export class UsersService {
     constructor(private readonly randomCode: RandomcodeService,
         private readonly mailserv: NodemailerService,
         private readonly redis: RedisService,
-        private readonly task: TaskService
+        private readonly task: TaskService,
+        private readonly enc: EncService
     ) { }
     async signup(username: string, password: string, email: string): Promise<any> {
         try {
@@ -26,10 +29,10 @@ export class UsersService {
                 return "jangan ada simbol @ saat menyertakan nama"
             }
 
-            const find = await users.findOne({
+            const find: any = await users.findOne({
                 where: {
                     [Op.or]: {
-                        username: username,
+                        fullName: username,
                         email: email
                     }
                 }, raw: true
@@ -39,10 +42,24 @@ export class UsersService {
                 return `sudah ada akun terdaftar`
             else
                 await users.create({
-                    username: username,
+                    fullName: username,
                     password: await argon2.hash(password),
                     email: email
                 })
+
+            //set key and iv enc
+            setTimeout(async () => {
+                let encKey = await this.enc.set()
+                encKey = JSON.stringify(encKey)
+                await axios.get(`http://localhost:3000/oauth/encKey/get`, {
+                    headers: {
+                        'encKey': `${email}: ${encKey}`
+                    }
+                })
+                return { message: true }
+            }, 3000)
+
+
             await this.sendVerifyMessage(email) //send verify
             return `sukses untuk membuat akun bernama ${username}, kami telah mengirimlan link verifikasi ke email ${email}`
 
@@ -76,7 +93,7 @@ export class UsersService {
                 {
                     email: username, verify: 1
                 }, raw: true
-            }) : await users.findOne({ where: { username: username, verify: 1 } })
+            }) : await users.findOne({ where: { fullName: username, verify: 1 } })
 
 
             const verif = await argon2.verify(finding.password, password)

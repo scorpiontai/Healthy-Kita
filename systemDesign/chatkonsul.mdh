@@ -15,3 +15,10 @@ pertanyaan terakhir
 -jenis kelamin
 
 
+
+INTRO:
+
+db:mongo
+schema:
+
+username,answer:question,answer,recommendedAction

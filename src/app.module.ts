@@ -19,6 +19,11 @@ import { Oauth2Service } from './oauth2/oauth2.service';
 import { TaskService } from './task/task.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AskCommand } from './ask/ask.command';
+import { GeminiService } from './gemini/gemini.service';
+import { EncService } from './enc/enc.service';
+import { AiModule } from './ai/ai.module';
+import { KafkaService } from './kafka/kafka.service';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 dotenv.config({ path: resolve('./src/.env') });
 @Module({
   imports: [UsersModule, RedisModule,
@@ -28,12 +33,30 @@ dotenv.config({ path: resolve('./src/.env') });
       secret: process.env.SECREET_JWT,
       signOptions: { expiresIn: "10d" }
     }),
+    ClientsModule.register([
+      {
+        name: 'useAskKafka',
+        transport: Transport.KAFKA,
+        options: {
+          client: {
+            clientId: 'useAsk',
+            brokers: ['localhost:9092'],
+          },
+          consumer: {
+            groupId: 'useAskOneKafka-consumer'
+          }
+        }
+      },
+    ]),
   ],
   controllers: [AppController, VerifyController, OauthController],
   providers: [AppService, UsersService, redisClientFactory, NodemailerService, RedisService, RandomcodeService,
     Oauth2Service,
     TaskService,
-    AskCommand
+    GeminiService,
+    EncService,
+    AiModule,
+    KafkaService
   ],
 })
 export class AppModule { }
