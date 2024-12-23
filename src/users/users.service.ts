@@ -11,6 +11,7 @@ import { Op } from 'sequelize';
 import { TaskService } from 'src/task/task.service';
 import { EncService } from 'src/enc/enc.service';
 import axios from 'axios';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UsersService {
@@ -18,7 +19,8 @@ export class UsersService {
         private readonly mailserv: NodemailerService,
         private readonly redis: RedisService,
         private readonly task: TaskService,
-        private readonly enc: EncService
+        private readonly enc: EncService,
+        private readonly jwt: JwtService
     ) { }
     async signup(username: string, password: string, email: string): Promise<any> {
         try {
@@ -83,7 +85,7 @@ export class UsersService {
         }
     }
 
-    async login(username: string, password: string): Promise<any> {
+    async login(username: string, password: string, remember: string): Promise<any> {
         try {
 
             if (!username && !password)
@@ -97,11 +99,13 @@ export class UsersService {
             }) : await users.findOne({ where: { fullName: username, verify: 1 } })
 
 
+
             const verif = await argon2.verify(finding.password, password)
             if (finding && verif) {
-                return true
+                let token = this.jwt.sign({ for: "all", username: username })
+                return { mesasge: true, token: token }
             } else {
-                return false
+                return { message: false }
             }
 
         } catch (err) {

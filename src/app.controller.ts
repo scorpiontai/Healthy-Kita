@@ -24,11 +24,11 @@ export class AppController {
 
 
   @Post("signup/user")
-  async set(@Body() body: Users): Promise<any> {
+  async set(@Body() body: Users, @Res() res: Response): Promise<any> {
     try {
       const { username, password, email } = body
       const created = await this.userService.signup(username, password, email)
-      return ({ message: created })
+      return ({ message: created.message })
     } catch (err) {
       console.error(err.message);
     }
@@ -36,18 +36,20 @@ export class AppController {
   @Post("login/user")
   async login(@Body() body: Users, @Res() res: Response): Promise<any> {
     try {
-      const { username, password } = body
+      const { username, password, remember } = body
 
       if (!username && !password)
         return { message: "harap inputkan dengan benar" }
 
-      const loginned = await this.userService.login(username, password)
+      const loginned = await this.userService.login(username, password, remember)
 
       if (loginned) {
         const jwts = await this.jwt.signAsync({ userName: username })
-        res.setHeader("token", jwts)
-        res.header("Access-Control-Expose-Headers", "token");
-        res.status(200).json({ message: loginned })
+
+        remember === "true" ? res.status(200).cookie("tokenUser", loginned.token, { httpOnly: true, maxAge: 10 * 60 * 60 * 1000 }) :
+          res.status(200).cookie("tokenUser", loginned.token, { httpOnly: true, maxAge: 10 * 60 * 1000 })
+
+        res.status(200).json({ message: loginned.message })
       } else {
         return ({ message: "gagal untuk mencoba login" })
       }
