@@ -48,6 +48,7 @@ export class UsersService {
                 })
 
             //set key and iv enc
+            //send header 
             setTimeout(async () => {
                 let encKey = await this.enc.set()
                 encKey = JSON.stringify(encKey)

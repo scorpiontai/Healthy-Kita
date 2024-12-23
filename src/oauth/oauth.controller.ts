@@ -54,6 +54,7 @@ export class OauthController {
             const findIfExistsToken = await this.HandlingIfAlreadyHaveToken(email)
 
 
+
             if (!findIfExistsToken) {
                 if (!accessToken)
                     return res.status(400).json({ message: "token tidak ditemukan, harap coba ulangi atau hubungi developer" })
@@ -83,6 +84,7 @@ export class OauthController {
                     make secure send to client side with another technic such as header send etc
                     */
 
+                    //this is
                     setTimeout(async () => {
                         let encKey = await this.enc.set()
                         encKey = JSON.stringify(encKey)
