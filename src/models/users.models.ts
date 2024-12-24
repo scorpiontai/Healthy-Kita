@@ -15,7 +15,7 @@ export class users extends Model {
 
     @Column
     password: string;
-
+    
     @Column
     email: string;
 

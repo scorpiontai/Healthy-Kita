@@ -27,6 +27,8 @@ export class NodemailerService {
                 text: text,
                 html: `<a href=${html}>verifikasi</a>`
             });
+
+            return `sukses mengirim verifikasi ke ${target}`
         } catch (err) {
             console.error(err.message);
         }
