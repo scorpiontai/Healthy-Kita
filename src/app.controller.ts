@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Res, Req, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Res, Req, Body, Logger } from '@nestjs/common';
 import { AppService } from './app.service';
 import { Response, Request } from 'express';
 import { BeforeInit, UsersService } from './users/users.service';
@@ -7,17 +7,25 @@ import { JwtService } from '@nestjs/jwt';
 import { GeminiService } from './gemini/gemini.service';
 import * as dotenv from 'dotenv'
 import { resolve } from 'path'
-import { CommandBus } from '@nestjs/cqrs';
+import { CommandBus, EventBus } from '@nestjs/cqrs';
 import { EncService } from './enc/enc.service';
 import { KafkaService } from './kafka/kafka.service';
 import { MESSAGES } from '@nestjs/core/constants';
 import { users } from './models/users.models';
+import { RedisService } from './redis/redis.service';
+import { Ctx, EventPattern, MessagePattern, Payload, RedisContext } from '@nestjs/microservices';
+import { retry } from 'rxjs';
+import { time } from 'console';
+import { TimeService } from './time/time.service';
+import { askCommandDTO } from './ask/asjk.command-dto';
+import { notifEvent } from './notif/DTO/notif-dt0.event';
 @Controller("api")
 /*
 
 This API for user bassic credentials and security management
 only rest, guard for authorization, cookie and heders for resource
 thank you 
+
 */
 export class AppController {
   constructor(private readonly appService: AppService,
@@ -25,8 +33,12 @@ export class AppController {
     private readonly jwt: JwtService,
     private readonly enc: EncService,
     private readonly kafka: KafkaService,
-    private readonly BeforeInit: BeforeInit
-
+    private readonly BeforeInit: BeforeInit,
+    private readonly redis: RedisService,
+    private readonly encServ: EncService,
+    private readonly timeServ: TimeService,
+    private readonly eventBus: EventBus,
+    private readonly commandBus: CommandBus
   ) { }
 
 
@@ -44,6 +56,7 @@ export class AppController {
   async login(@Body() body: Users, @Res() res: Response): Promise<any> {
     try {
       const { username, password, remember } = body
+      console.debug(username,password,remember)
 
       if (!username && !password)
         return { message: "harap inputkan dengan benar" }
@@ -52,10 +65,12 @@ export class AppController {
 
       if (loginned) {
 
-        remember === "true" ? res.status(200).cookie("tokenUser", loginned.token, { httpOnly: true, maxAge: 10 * 60 * 60 * 1000, sameSite: 'strict' }) :
-          res.status(200).cookie("tokenUser", loginned.token, { httpOnly: true, maxAge: 10 * 60 * 1000, sameSite: 'strict' })
+        remember === "true" ? res.status(200).cookie("tokenUser", loginned.token, { httpOnly: true, secure: true, maxAge: 10 * 60 * 60 * 1000, sameSite: 'none' }) :
+          res.status(200).cookie("tokenUser", loginned.token, { httpOnly: true, secure: true, maxAge: 10 * 60 * 1000, sameSite: 'none' })
 
-        res.status(200).json({ message: loginned.message })
+        //set enc key and enc iv
+        const allEncAndIV = await this.enc.set()
+        res.status(200).json({ message: loginned.message, encKeyIv: allEncAndIV })
       } else {
         return ({ message: "gagal untuk mencoba login, mungkin anda belum terverifikasi" })
       }
@@ -97,13 +112,14 @@ export class AppController {
             email: email
           }
         })
-        return `sukses mengganti kata sandi lama ke kata sandi baru`
+        return { message: `sukses mengganti kata sandi lama ke kata sandi baru` }
       } else {
-        return `gagal mengganti kata sandi lama ke kata sandi baru`
+        return { message: `gagal mengganti kata sandi lama ke kata sandi baru` }
       }
     } catch (err) {
       console.error(err.message);
     }
   }
+
 }
 
