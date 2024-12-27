@@ -54,7 +54,7 @@ export class VerifyController {
     }
 
     @UseGuards(ChangesPwGuard)
-    @Get("forgotPw/:email")
+    @Get("forgotPw/:email") //api for checker action forgotPW
     async firgotpw(@Param("email") email: string, @Query("code") code: string): Promise<any> {
         try {
             const emailKeyStore = await this.redis.get(`recover:${email}`)
