@@ -1,22 +1,35 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Intro } from './schema/intro.schema';
+import { Intro, IntroDocument } from './schema/intro.schema';
 import { Model } from 'mongoose';
 @Injectable()
 export class AischemaService {
-    constructor(@InjectModel(Intro.name, 'intro') private introAsk: Model<Intro>) { }
-
-    async registUser(username: string, question: string, answer: string): Promise<any> {
+    constructor(@InjectModel(Intro.name) private introAsk: Model<IntroDocument>) { }
+    async checkUser(userID: number): Promise<any> {
         try {
-            await this.introAsk.create(username, question, answer)
+            console.debug("userID is", userID)
+            const find = await this.introAsk.findOne({ userID: userID }).exec()
+            console.debug("finding bro", find)
+            return find
         } catch (err) {
             console.error(err.message);
         }
     }
 
-    async recommendedUser(recommendedAction: string, username: string): Promise<any> {
+    async registUser(userID: number, username: string, question: string): Promise<any> {
         try {
-
+            await this.introAsk.create({
+                userID: userID, username: username, question: question
+            })
+            return true
+        } catch (err) {
+            console.error(err.message);
+            return false
+        }
+    }
+    async setRecommendedAction(recommendedAction: string, userID: number): Promise<any> {
+        try {
+            await this.introAsk.updateOne({ userID: userID }, { $set: { recommendedAction: recommendedAction } })
         } catch (err) {
             console.error(err.message);
         }
