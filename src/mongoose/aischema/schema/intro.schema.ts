@@ -6,14 +6,15 @@ export type IntroDocument = HydratedDocument<Intro>;
 
 @Schema()
 export class Intro {
-    @Prop({ required: true, type: String })
-    username: string;
 
-    @Prop({ required: true, type: String })
-    question: string;
+    @Prop({ required: true, type: Number })
+    userID: number
 
-    @Prop({ required: true, type: String })
-    answer: string;
+    @Prop({ required: false, type: String })
+    username: string
+
+    @Prop({ required: false, type: String })
+    question: string
 
     @Prop({ required: false, type: String, default: null })
     recommendedAction: string
