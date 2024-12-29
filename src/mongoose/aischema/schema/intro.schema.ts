@@ -18,6 +18,9 @@ export class Intro {
 
     @Prop({ required: false, type: String, default: null })
     recommendedAction: string
+
+    @Prop({ required: true, type: Date, default: new Date().toLocaleString() })
+    timestamp: Date
 }
 
 export const IntroSchema = SchemaFactory.createForClass(Intro);
