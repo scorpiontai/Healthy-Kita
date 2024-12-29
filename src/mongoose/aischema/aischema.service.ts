@@ -7,9 +7,7 @@ export class AischemaService {
     constructor(@InjectModel(Intro.name) private introAsk: Model<IntroDocument>) { }
     async checkUser(userID: number): Promise<any> {
         try {
-            console.debug("userID is", userID)
             const find = await this.introAsk.findOne({ userID: userID }).exec()
-            console.debug("finding bro", find)
             return find
         } catch (err) {
             console.error(err.message);
@@ -30,6 +28,15 @@ export class AischemaService {
     async setRecommendedAction(recommendedAction: string, userID: number): Promise<any> {
         try {
             await this.introAsk.updateOne({ userID: userID }, { $set: { recommendedAction: recommendedAction } })
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
+    async shutDown(userID: number): Promise<any> {
+        try {
+            const deleted = await this.introAsk.deleteOne({ userID: userID })
+            return deleted ? true : false
         } catch (err) {
             console.error(err.message);
         }
