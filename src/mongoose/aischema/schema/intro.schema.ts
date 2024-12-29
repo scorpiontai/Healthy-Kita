@@ -11,15 +11,24 @@ export class Intro {
     userID: number
 
     @Prop({ required: false, type: String })
-    username: string
+    fullName: string
 
     @Prop({ required: false, type: String })
     question: string
 
-    @Prop({ required: false, type: String, default: null })
-    recommendedAction: string
+    @Prop({ required: true, type: Number })
+    activityIntens: true
 
-    @Prop({ required: true, type: Date, default: new Date().toLocaleString() })
+    @Prop({ required: true, type: Number })
+    age: number
+
+    @Prop({ required: true, type: Number })
+    weight: number
+
+    @Prop({ required: true, type: Number })
+    tal: number
+
+    @Prop({ required: true, type: Date })
     timestamp: Date
 }
 
