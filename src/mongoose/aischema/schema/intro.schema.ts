@@ -28,8 +28,11 @@ export class Intro {
     @Prop({ required: true, type: Number })
     tal: number
 
-    @Prop({ required: true, type: Date })
-    timestamp: Date
+    @Prop({ required: true, type: String })
+    timestamp: string
+
+    @Prop({ required: true, type: Boolean, default: false })
+    cachingQuestion: boolean
 }
 
 export const IntroSchema = SchemaFactory.createForClass(Intro);
