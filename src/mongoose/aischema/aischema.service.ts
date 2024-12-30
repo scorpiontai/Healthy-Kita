@@ -2,9 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Intro, IntroDocument } from './schema/intro.schema';
 import { Model } from 'mongoose';
+import { TimeService } from 'src/time/time.service';
 @Injectable()
 export class AischemaService {
-    constructor(@InjectModel(Intro.name) private introAsk: Model<IntroDocument>) { }
+    constructor(@InjectModel(Intro.name) private introAsk: Model<IntroDocument>,
+        private readonly timeServ: TimeService) { }
     async checkUser(userID: number): Promise<any> {
         try {
             const find = await this.introAsk.findOne({ userID: userID }).exec()
@@ -14,12 +16,19 @@ export class AischemaService {
         }
     }
 
-    async registUser(userID: number, username: string, question: string): Promise<any> {
+    async registUser(userID: number, fullName: string, activityIntens: number, age: number, weight: number, tal: number): Promise<any> {
         try {
-            await this.introAsk.create({
-                userID: userID, username: username, question: question
-            })
-            return true
+            const find = await this.checkUser(userID)
+
+            if (!find) {
+                await this.introAsk.create({
+                    userID: userID, fullName: fullName, activityIntens: activityIntens, age: age,
+                    weight: weight, tal: tal, timestamp: await this.timeServ.localeString()
+                })
+                return true
+            } else {
+                return false
+            }
         } catch (err) {
             console.error(err.message);
             return false
@@ -35,8 +44,13 @@ export class AischemaService {
 
     async shutDown(userID: number): Promise<any> {
         try {
-            const deleted = await this.introAsk.deleteOne({ userID: userID })
-            return deleted ? true : false
+            const find = await this.checkUser(userID)
+            if (find) {
+                const deleted = await this.introAsk.deleteOne({ userID: userID })
+                return deleted ? true : false
+            } else {
+                return false
+            }
         } catch (err) {
             console.error(err.message);
         }
