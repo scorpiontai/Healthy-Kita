@@ -56,7 +56,7 @@ export class AppController {
   async login(@Body() body: Users, @Res() res: Response): Promise<any> {
     try {
       const { username, password, remember } = body
-      console.debug(username,password,remember)
+      console.debug(username, password, remember)
 
       if (!username && !password)
         return { message: "harap inputkan dengan benar" }
@@ -121,5 +121,14 @@ export class AppController {
     }
   }
 
+  @Get("get/credentials")
+  async getCredentials(@Req() req: Request): Promise<any> {
+    try {
+      const { tokenUser } = req.cookies
+      return { tokenUser: tokenUser }
+    } catch (err) {
+      console.error(err.message);
+    }
+  }
 }
 
