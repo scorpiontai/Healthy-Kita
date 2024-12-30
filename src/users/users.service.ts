@@ -1,15 +1,15 @@
 
 import { Injectable, Logger } from '@nestjs/common';
-import { users } from 'src/models/users.models';
+import { users } from '../models/users.models';
 import * as argon2 from 'argon2'
-import { RandomcodeService } from 'src/randomcode/randomcode.service';
-import { NodemailerService } from 'src/nodemailer/nodemailer.service';
-import { RedisService } from 'src/redis/redis.service';
+import { RandomcodeService } from '../randomcode/randomcode.service';
+import { NodemailerService } from '../nodemailer/nodemailer.service';
+import { RedisService } from '../redis/redis.service';
 import { randomString } from 'random-string';
 import { randomUUID } from 'crypto';
 import { Op } from 'sequelize';
-import { TaskService } from 'src/task/task.service';
-import { EncService } from 'src/enc/enc.service';
+import { TaskService } from '../task/task.service';
+import { EncService } from '../enc/enc.service';
 import axios from 'axios';
 import { JwtService } from '@nestjs/jwt';
 
@@ -55,7 +55,12 @@ export class BeforeInit {
             if (await this.jwt.verifyAsync(token)) {
                 token = await this.jwt.decode(token)
                 let userName = token.userName
-                return userName
+                let email = token.email
+
+                // find userID 
+                const userID = await this.findIDUser(email)
+                const fullName = await this.findUsernameWithID(userID.id)
+                return { userName: userName, email: email, fullName: fullName.userName, userID: userID.id }
             }
 
         } catch (err) {
@@ -63,6 +68,30 @@ export class BeforeInit {
         }
     }
 
+    async findIDUser(action: string): Promise<any> {
+        try {
+            let actionQuery = action.includes("@") ? await users.findOne({
+                where: {
+                    email: action
+                }, raw: true, attributes: ['ID', 'userName']
+            }) : await users.findOne({ where: { userName: action }, raw: true, attributes: ['ID', 'userName'] })
+            return { id: actionQuery.ID, userName: actionQuery.username } //returrning ID user
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+    async findUsernameWithID(ID: number): Promise<any> {
+        try {
+            const find = await users.findOne({
+                where: {
+                    ID: ID
+                }, raw: true
+            })
+            return { userName: find.username, fullName: find.fullName, age: new Date().getFullYear() - find.yearBorn }
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
 }
 
 @Injectable()
@@ -148,8 +177,8 @@ export class UsersService {
             const verif = await argon2.verify(finding.password, password)
 
             if (finding && verif) {
-                let token = this.jwt.sign({ userName: username })
-                return { mesasge: true, token: token }
+                let token = this.jwt.sign({ userName: finding.fullName, email: finding.email })
+                return { message: true, token: token }
             } else {
                 return { message: false }
             }
@@ -163,6 +192,7 @@ export class UsersService {
         try {
 
             let userName = await this.BeforeInit.decodeToken(token)
+            userName = userName.userName
 
             const findUsername = await users.findOne({
                 where: {
