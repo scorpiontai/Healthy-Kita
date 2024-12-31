@@ -9,8 +9,6 @@ export class CouchbBaseService {
         private readonly timeServ: TimeService) { }
     async upset(userID: number, bucketName: string, upsertName: string, content: any, key?: [number], iv?: [number]): Promise<any> {
         try {
-            //before is encryption
-
             let message = key && iv ? await this.encService.enc(key, iv, content) : content
 
 
@@ -19,7 +17,7 @@ export class CouchbBaseService {
 
 
             await coll.upsert(`${upsertName}`, { userID: userID, message: message, timestamp: await this.timeServ.localeString() })
-            return "success to upsert"
+            return true
 
         } catch (err) {
             console.error(err.message);
@@ -43,7 +41,7 @@ export class CouchbBaseService {
             const bucket = this.couchbase.bucket(bucketName)
             const coll = bucket.defaultCollection()
             coll.replace(upsertName, content)
-            return "success to replace"
+            return true
         } catch (err) {
             console.error(err.message);
         }
@@ -55,7 +53,7 @@ export class CouchbBaseService {
             const bucket = this.couchbase.bucket(bucketName)
             const coll = bucket.defaultCollection()
             coll.remove(upsertName)
-            return 'success to remove'
+            return true
         } catch (err) {
             console.error(err.message);
         }
