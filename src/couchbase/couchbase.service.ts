@@ -18,7 +18,7 @@ export class CouchbBaseService {
             const coll = bucket.defaultCollection()
 
 
-            await coll.upsert(`${upsertName}`, { message: message, timestamp: await this.timeServ.localeString() })
+            await coll.upsert(`${upsertName}`, { userID: userID, message: message, timestamp: await this.timeServ.localeString() })
             return "success to upsert"
 
         } catch (err) {
