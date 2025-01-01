@@ -1,9 +1,12 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import Redis from 'ioredis';
-
 @Injectable()
 export class RedisService {
-    constructor(@Inject("RedisClient") private readonly redis: Redis) { }
+
+    constructor(@Inject("RedisClient") private readonly redis: Redis,
+    ) {
+
+    }
 
     async setWithTTL(name: string, value: any, ttl: number): Promise<any> {
         try {
@@ -42,7 +45,7 @@ export class RedisService {
     }
     async get(name: string): Promise<any> {
         try {
-            const redis = await this.redis.get(name)
+            const redis: any = await this.redis.get(name)
             return redis
         } catch (err) {
             console.error(err.message);
@@ -57,5 +60,30 @@ export class RedisService {
         }
     }
 
+
+    async lock(name: string, value: any): Promise<any> {
+        try {
+            let { userID, content } = value
+            let named = name.split(":")
+
+            if (named[1] === userID) {
+                await this.redis.set(name, content, 'NX')
+            }
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
+    async unlock(name: string): Promise<any> {
+        try {
+            setTimeout(async () => {
+                await this.redis.del(name)
+            }, 5000);
+
+            return await this.redis.get(name)
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
 
 }
