@@ -4,7 +4,6 @@ import Redis from 'ioredis';
 import * as dotenv from 'dotenv';
 import { resolve } from 'path'
 dotenv.config({ path: resolve('./src/.env') });
-
 @Module({
     providers: [
         {

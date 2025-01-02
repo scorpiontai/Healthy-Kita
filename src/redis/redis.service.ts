@@ -67,7 +67,8 @@ export class RedisService {
             let named = name.split(":")
 
             if (named[1] === userID) {
-                await this.redis.set(name, content, 'NX')
+                await this.redis.set(name, JSON.stringify(content), 'NX')
+                Logger.debug("set lock")
             }
         } catch (err) {
             console.error(err.message);

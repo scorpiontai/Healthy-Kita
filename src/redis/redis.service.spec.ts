@@ -6,7 +6,12 @@ describe('RedisService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [RedisService],
+      providers: [RedisService,
+        {
+          provide: "RedisClient",
+          useValue: {},
+        },
+      ],
     }).compile();
 
     service = module.get<RedisService>(RedisService);
@@ -15,4 +20,6 @@ describe('RedisService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
+
+
 });
