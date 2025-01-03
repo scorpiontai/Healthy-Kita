@@ -9,6 +9,7 @@ import { EncService } from 'src/enc/enc.service';
 import { askQueryResult } from 'src/ask/ask.query-result-dto';
 import { notifEvent } from 'src/notif/DTO/notif-dt0.event';
 import { OnModuleDestroy } from '@nestjs/common';
+import { RedisService } from 'src/redis/redis.service';
 @WebSocketGateway({
   cors: {
     origin: "*",
@@ -19,7 +20,8 @@ export class SystemGateway implements OnModuleDestroy {
     private readonly BeforeInit: BeforeInit,
     private readonly queryBus: QueryBus,
     private readonly encServ: EncService,
-    private readonly notifEvent: notifEvent
+    private readonly notifEvent: notifEvent,
+    private readonly redisServ: RedisService
   ) { }
   @WebSocketServer()
   server: Server
@@ -38,6 +40,13 @@ export class SystemGateway implements OnModuleDestroy {
       const encID = await this.encServ.enc(encKey, ivKey, userID.toString())
       client.join(encID)
 
+      const guard = await this.redisServ.get(`current_audit:${encID}`)
+
+      if (guard) {
+        this.server.to(encID).emit("responseAudit", `harap jawab dulu pertanyaan 
+          audit sebelumnya`)
+      }
+
       const commandAction =
         await this.commandBus.execute(
           new askCommandDTO(
@@ -48,45 +57,26 @@ export class SystemGateway implements OnModuleDestroy {
             tall = tall ? tall : tokenUser.tall,
             weight ? weight : tokenUser.weight))
 
-      let responseData =
-        await this.queryBus.execute(
-          new askQueryResult(
-            userID,
-            encKey,
-            ivKey))
+      if (commandAction.status) {
+        setTimeout(async () => {
+          let responseData =
+            await this.queryBus.execute(
+              new askQueryResult(
+                userID,
+                encKey,
+                ivKey))
 
-      responseData = {
-
-        command: {
-          statusBuild: commandAction.status,
-          buildResponse: commandAction.message
-        },
-
-        query: {
-          statusQuestion: responseData.status,
-          responseAudit: responseData.message,
-          client: responseData.client
-        }
-
+          if (responseData.status && responseData.current === 'now') {
+            this.server.to(responseData.client).emit("responseAudit",
+              responseData.message)
+          }
+        }, 5000);
       }
-
-
-      if (responseData.query.statusQuestion === true &&
-        responseData.command.statusBuild === false &&
-        responseData.query.client === encID) {
-
-        const response = responseData.query.responseAudit
-        const client = responseData.query.client
-        this.server.to(client).emit("responseAudit",
-          { question: response }
-        )
-      }
-
     } catch (err) {
       console.error(err.message);
     }
   }
-
+  
   @SubscribeMessage("submitted")
   async submitted(@MessageBody() payload: any): Promise<any> {
     try {
@@ -95,6 +85,16 @@ export class SystemGateway implements OnModuleDestroy {
       let question = payload.answer
       tokenUser = await this.BeforeInit.decodeToken(tokenUser)
       const userID = tokenUser.userID
+
+      const encID = await this.encServ.enc(encKey, ivKey, userID.toString())
+      const guard = await this.redisServ.get(`current_audit:${encID}`)
+
+      if (guard) {
+        this.server.to(encID).emit("responseAudit", `harap jawab dulu pertanyaan 
+          audit sebelumnya`)
+      }
+
+
       const submit = await this.commandBus.execute(
         new AnswerCommand(
           userID,
@@ -111,8 +111,10 @@ export class SystemGateway implements OnModuleDestroy {
         ))
 
       if (responseData.status) {
-        this.server.to(responseData.client).emit("responseSubmitted",
-          { message: responseData.message })
+        const client = responseData.client
+        const message = responseData.message
+        this.server.to(client).emit("responseSubmitted",
+          { message: message })
       }
 
     } catch (err) {
