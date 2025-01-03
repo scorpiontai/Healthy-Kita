@@ -1,4 +1,4 @@
-import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { askCommandDTO } from 'src/ask/asjk.command-dto';
 import { BeforeInit } from 'src/users/users.service';
@@ -8,8 +8,10 @@ import { AnswerCommand } from 'src/answer/DTO/answer-command.dto';
 import { EncService } from 'src/enc/enc.service';
 import { askQueryResult } from 'src/ask/ask.query-result-dto';
 import { notifEvent } from 'src/notif/DTO/notif-dt0.event';
-import { OnModuleDestroy } from '@nestjs/common';
+import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { RedisService } from 'src/redis/redis.service';
+import { askQuery } from 'src/ask/ask.query-dto';
+import { User } from 'couchbase';
 @WebSocketGateway({
   cors: {
     origin: "*",
@@ -26,6 +28,22 @@ export class SystemGateway implements OnModuleDestroy {
   @WebSocketServer()
   server: Server
   client: Socket
+  
+    @SubscribeMessage("join")
+    async set(client: Socket, payload: any): Promise<any> {
+      try {
+        let { tokenUser, encKey, ivKey, } = payload.init
+        tokenUser = await this.BeforeInit.decodeToken(tokenUser)
+  
+        let userID = tokenUser.userID
+        const encID = await this.encServ.enc(encKey, ivKey, userID.toString())
+        client.join(encID)
+  
+        return { status: true }
+      } catch (err) {
+        console.error(err.message);
+      }
+    }
 
 
   @SubscribeMessage("start")
@@ -38,7 +56,6 @@ export class SystemGateway implements OnModuleDestroy {
 
       let userID = tokenUser.userID
       const encID = await this.encServ.enc(encKey, ivKey, userID.toString())
-      client.join(encID)
 
       const guard = await this.redisServ.get(`current_audit:${encID}`)
 
@@ -57,26 +74,11 @@ export class SystemGateway implements OnModuleDestroy {
             tall = tall ? tall : tokenUser.tall,
             weight ? weight : tokenUser.weight))
 
-      if (commandAction.status) {
-        setTimeout(async () => {
-          let responseData =
-            await this.queryBus.execute(
-              new askQueryResult(
-                userID,
-                encKey,
-                ivKey))
-
-          if (responseData.status && responseData.current === 'now') {
-            this.server.to(responseData.client).emit("responseAudit",
-              responseData.message)
-          }
-        }, 5000);
-      }
     } catch (err) {
       console.error(err.message);
     }
   }
-  
+
   @SubscribeMessage("submitted")
   async submitted(@MessageBody() payload: any): Promise<any> {
     try {
@@ -87,40 +89,58 @@ export class SystemGateway implements OnModuleDestroy {
       const userID = tokenUser.userID
 
       const encID = await this.encServ.enc(encKey, ivKey, userID.toString())
-      const guard = await this.redisServ.get(`current_audit:${encID}`)
 
-      if (guard) {
-        this.server.to(encID).emit("responseAudit", `harap jawab dulu pertanyaan 
-          audit sebelumnya`)
-      }
-
-
-      const submit = await this.commandBus.execute(
+      await this.commandBus.execute(
         new AnswerCommand(
           userID,
           question,
           encKey,
           ivKey))
 
-      let responseData = await this.queryBus.execute(
-        new AnswerCommand(
-          userID,
+    } catch (err) {
+      console.error(err.message);
+    }
+  }
+
+  async responseResult(payload: any): Promise<any> {
+    try {
+      const { client, encKey, ivKey } = payload
+
+      let respponse =
+        await this.queryBus.execute(new AnswerCommand(
+          client,
           'get',
           encKey,
           ivKey
         ))
 
-      if (responseData.status) {
-        const client = responseData.client
-        const message = responseData.message
-        this.server.to(client).emit("responseSubmitted",
-          { message: message })
+      let message = respponse.message
+      message = message.replace(/\\n/g, '')
+      
+      if (message) {
+        await this.redisServ.unlock(`current_audit:${client}`)
+        this.server.to(client).emit("responseAnswerAudit", {
+          message: message
+        })
       }
-
     } catch (err) {
       console.error(err.message);
     }
   }
+
+  async responseQuestion(payload: any): Promise<any> {
+    try {
+      const { client, encKey,
+        ivKey, message} = payload
+
+      this.server.to(client).emit("responseAudit",
+       { message: message }
+      )
+    } catch (err) {
+      console.error(err.message);
+    }
+  }
+
   onModuleDestroy() {
     this.server.close()
   }
