@@ -1,11 +1,14 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import Redis from 'ioredis';
 @Injectable()
 export class RedisService {
 
-    constructor(@Inject("RedisClient") private readonly redis: Redis,
+    constructor(@Inject("RedisClient") private readonly redis: Redis
     ) {
 
+    }
+    private delay(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     async setWithTTL(name: string, value: any, ttl: number): Promise<any> {
@@ -63,28 +66,35 @@ export class RedisService {
 
     async lock(name: string, value: any): Promise<any> {
         try {
-            let { userID, content } = value
-            let named = name.split(":")
-
-            if (named[1] === userID) {
-                await this.redis.set(name, JSON.stringify(content), 'NX')
-                Logger.debug("set lock")
-            }
+            const { content } = value
+                this.redis.setnx(name, JSON.stringify(content))
+                this.redis.expire(name,20)
+                Logger.debug("set lock" )
         } catch (err) {
             console.error(err.message);
         }
     }
+
+    async unlocked(name: string): Promise<any> {
+        try {
+            const value = await this.redis.get(name)
+            return JSON.parse(value)
+        } catch (err) {
+            console.error(err.message);
+            throw err;
+        }
+    }
+    
 
     async unlock(name: string): Promise<any> {
         try {
             setTimeout(async () => {
                 await this.redis.del(name)
-            }, 5000);
+            }, 7 * 1000);
 
-            return await this.redis.get(name)
+            return JSON.parse(await this.redis.get(name))
         } catch (err) {
             console.error(err.message);
         }
     }
-
 }
