@@ -22,6 +22,7 @@ export class ChangesPwGuard implements CanActivate {
 
 
       let userName = await this.BeforeInit.decodeToken(tokenUser)
+      userName = userName.userName
 
       //check email with username
       const find = await users.findOne({
