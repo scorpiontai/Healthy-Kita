@@ -20,7 +20,7 @@ export class EncService {
         }
     }
 
-    async enc(key: number[], iv: number[], textToEncrypt: string): Promise<string> {
+    async enc(key: number[], iv: number[], textToEncrypt: any): Promise<string> {
         try {
             const keyBuffer = Buffer.from(key);
             const ivBuffer = Buffer.from(iv);
