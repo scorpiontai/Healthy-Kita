@@ -10,38 +10,31 @@ import Redlock from 'redlock';
 import { AnswerCommand } from "src/answer/DTO/answer-command.dto";
 import { AuditHistoryService } from "./audit-histrory/audit-history.service";
 import { AuditHisotryEvent } from "./DTO/audit-history.event.dto";
-import { EventEmitter2 } from "@nestjs/event-emitter";
-
+import { SystemGateway } from "src/system/system.gateway";
 @EventsHandler(CalculationEvent)
 export class CalculationService implements IEventHandler<CalculationEvent> {
     constructor(
         private readonly geminiServ: GeminiService,
         private readonly redisServ: RedisService,
         private readonly eventBus: EventBus,
-        private readonly eventEmitter: EventEmitter2
+        private readonly systemGateway: SystemGateway
     ) { }
     async handle(event: CalculationEvent) {
+        let { userIDEnc } = event
+        let get = await this.redisServ.unlocked(`answer`)
+
         try {
-            let { userIDEnc, encKey, ivKey } = event
-            let get = await this.redisServ.unlock(`answer:${userIDEnc}`)
-            get = JSON.parse(get)
-
-
             let calculation = await this.geminiServ.calculationQuest(userIDEnc, get)
             let calculationMessage = calculation.message.replace(/\*/g, '')
             let calculationUserID = calculation.userIDEnc
 
-           
-            await this.redisServ.lock(`result_socket:${calculationUserID}`, {
-                userIDD: userIDEnc,
-                content: userIDEnc
-            })  
+            await this.redisServ.lock(`result`, {
+                userID: calculationUserID, content: {
+                    userIDEnc: calculationUserID
+                }
+            })
 
-            await this.eventEmitter.emitAsync("result_socket", { userID: calculationUserID,
-                encKey:encKey,ivKey:ivKey
-             })
-
-
+            await this.systemGateway.distributedAnswer('result')
             await this.eventBus.publish(
                 new AuditHisotryEvent(calculationUserID,
                     calculationMessage))
