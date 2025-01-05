@@ -16,7 +16,10 @@ export class Intro {
     publish: boolean
 
     @Prop({ requried: true, type: String, default: randomUUID() })
-    uuid: string 
+    uuid: string
+
+    @Prop({ required: true, type: String })
+    AuditID: string
 
     @Prop({ required: false, type: String, default: null })
     description: string
