@@ -6,15 +6,13 @@ import { TimeService } from 'src/time/time.service';
 import { RedisService } from 'src/redis/redis.service';
 @Injectable()
 export class AischemaService {
-    constructor(@InjectModel(Intro.name) private introAsk: Model<IntroDocument>,
-        private readonly timeServ: TimeService,
-        private readonly redisServ: RedisService) { }
+    constructor(@InjectModel(Intro.name) private introAsk: Model<IntroDocument>) { }
 
-    async registByDefault(userID: any, content: string): Promise<any> {
+    async registByDefault(userID: any, prePublishTime: any): Promise<any> {
         try {
             await this.introAsk.create({
                 userID: userID,
-                content: content
+                prePublishTime: prePublishTime
             })
             return true
         } catch (err) {
@@ -22,7 +20,40 @@ export class AischemaService {
         }
     }
 
-    //this func for public true and added external description
+    async findByUUID(uuid: string, userID?: string): Promise<any> {
+        try {
+            if (userID) {
+                const findWithUID = await this.introAsk.findOne({
+                    uuid: uuid,
+                    userID: userID
+                })
+                //on debugging
+                console.debug(findWithUID)
+                return findWithUID
+            } else {
+                const find = await this.introAsk.find({
+                    uuid: uuid
+                })
+                console.debug(find)
+                return find
+            }
+
+
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
+
+    async allFindWithUserID(userID: string): Promise<any> {
+        try {
+            const find = await this.introAsk.find({ userID: userID }).exec()
+            return find
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
     async addExternalInfo(userID: string,
         description: string, publish: boolean): Promise<any> {
         try {
