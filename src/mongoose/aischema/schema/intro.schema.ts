@@ -15,11 +15,11 @@ export class Intro {
     @Prop({ required: true, type: Boolean, default: false })
     publish: boolean
 
+    @Prop({ requried: true, type: String, default: randomUUID() })
+    uuid: string 
+
     @Prop({ required: false, type: String, default: null })
     description: string
-
-    @Prop({ required: true, type: String })
-    content: string
 }
 
 export const IntroSchema = SchemaFactory.createForClass(Intro);
