@@ -1,6 +1,6 @@
 export class askQueryResult {
     constructor(
-        public readonly userID: number,
+        public readonly userID: any,
         public readonly encKey: [number],
         public readonly ivKey: [number]
     ) { }
