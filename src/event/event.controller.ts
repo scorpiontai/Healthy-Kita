@@ -40,7 +40,7 @@ export class EventController {
         try {
             const { userIDEnc, range } = message
 
-            await this.redisServ.lock(`answer:${userIDEnc}`, {
+            await this.redisServ.lock(`answer`, {
                 userID: userIDEnc,
                 content: JSON.stringify(range)
             })
