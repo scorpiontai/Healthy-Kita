@@ -3,15 +3,12 @@ import { MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from
 import { askCommandDTO } from 'src/ask/asjk.command-dto';
 import { BeforeInit } from 'src/users/users.service';
 import { Socket, Server } from 'socket.io';
-import { KafkaService } from 'src/kafka/kafka.service';
 import { AnswerCommand } from 'src/answer/DTO/answer-command.dto';
 import { EncService } from 'src/enc/enc.service';
-import { askQueryResult } from 'src/ask/ask.query-result-dto';
-import { notifEvent } from 'src/notif/DTO/notif-dt0.event';
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { RedisService } from 'src/redis/redis.service';
-import { askQuery } from 'src/ask/ask.query-dto';
-import { User } from 'couchbase';
+import { AskQueryResult } from 'src/ask/ask-query.query.dto';
+import { AnswerQueryRead } from 'src/answer/DTO/answer-query-read.dto';
 @WebSocketGateway({
   cors: {
     origin: "*",
@@ -22,28 +19,27 @@ export class SystemGateway implements OnModuleDestroy {
     private readonly BeforeInit: BeforeInit,
     private readonly queryBus: QueryBus,
     private readonly encServ: EncService,
-    private readonly notifEvent: notifEvent,
     private readonly redisServ: RedisService
   ) { }
   @WebSocketServer()
   server: Server
   client: Socket
-  
-    @SubscribeMessage("join")
-    async set(client: Socket, payload: any): Promise<any> {
-      try {
-        let { tokenUser, encKey, ivKey, } = payload.init
-        tokenUser = await this.BeforeInit.decodeToken(tokenUser)
-  
-        let userID = tokenUser.userID
-        const encID = await this.encServ.enc(encKey, ivKey, userID.toString())
-        client.join(encID)
-  
-        return { status: true }
-      } catch (err) {
-        console.error(err.message);
-      }
+
+  @SubscribeMessage("join")
+  async set(client: Socket, payload: any): Promise<any> {
+    try {
+      let { tokenUser, encKey, ivKey, } = payload.init
+      tokenUser = await this.BeforeInit.decodeToken(tokenUser)
+
+      let userID = tokenUser.userID
+      const encID = await this.encServ.enc(encKey, ivKey, userID.toString())
+      client.join(encID)
+
+      return { status: true }
+    } catch (err) {
+      console.error(err.message);
     }
+  }
 
 
   @SubscribeMessage("start")
@@ -51,29 +47,21 @@ export class SystemGateway implements OnModuleDestroy {
     try {
 
       let { tokenUser, encKey, ivKey, } = payload.init
-      let { fullName, age, weight, tall } = payload.body
       tokenUser = await this.BeforeInit.decodeToken(tokenUser)
-
       let userID = tokenUser.userID
-      const encID = await this.encServ.enc(encKey, ivKey, userID.toString())
 
-      const guard = await this.redisServ.get(`current_audit:${encID}`)
 
-      if (guard) {
-        this.server.to(encID).emit("responseAudit", `harap jawab dulu pertanyaan 
-          audit sebelumnya`)
-      }
-
-      const commandAction =
+      let commandBus =
         await this.commandBus.execute(
           new askCommandDTO(
             userID,
             encKey,
-            ivKey,
-            fullName ? fullName : tokenUser.fullName,
-            tall = tall ? tall : tokenUser.tall,
-            weight ? weight : tokenUser.weight))
+            ivKey))
 
+      this.server.to(commandBus.client)
+        .emit("responseStart", {
+
+        })
     } catch (err) {
       console.error(err.message);
     }
@@ -86,9 +74,7 @@ export class SystemGateway implements OnModuleDestroy {
       let { tokenUser, encKey, ivKey } = payload.init
       let question = payload.answer
       tokenUser = await this.BeforeInit.decodeToken(tokenUser)
-      const userID = tokenUser.userID
-
-      const encID = await this.encServ.enc(encKey, ivKey, userID.toString())
+      let userID = tokenUser.userID
 
       await this.commandBus.execute(
         new AnswerCommand(
@@ -96,46 +82,45 @@ export class SystemGateway implements OnModuleDestroy {
           question,
           encKey,
           ivKey))
-
     } catch (err) {
       console.error(err.message);
     }
   }
 
-  async responseResult(payload: any): Promise<any> {
+  async distributedQuestion(key: string): Promise<any> {
     try {
-      const { client, encKey, ivKey } = payload
+      let unlock = await this.redisServ.unlocked(key)
+      const { userIDEnc } = unlock
 
-      let respponse =
-        await this.queryBus.execute(new AnswerCommand(
-          client,
-          'get',
-          encKey,
-          ivKey
-        ))
+      let messages =
+        await this.queryBus.execute(
+          new AskQueryResult(userIDEnc)
+        )
 
-      let message = respponse.message
-      message = message.replace(/\\n/g, '')
-      
-      if (message) {
-        await this.redisServ.unlock(`current_audit:${client}`)
-        this.server.to(client).emit("responseAnswerAudit", {
-          message: message
-        })
-      }
-    } catch (err) {
-      console.error(err.message);
-    }
-  }
-
-  async responseQuestion(payload: any): Promise<any> {
-    try {
-      const { client, encKey,
-        ivKey, message} = payload
-
-      this.server.to(client).emit("responseAudit",
-       { message: message }
+      const { message, craetedAt } = messages
+      this.server.to(userIDEnc).emit("TheQuestion",
+        { message: message, createdAt: craetedAt, next:true }
       )
+
+    } catch (err) {
+      console.error(err.message);
+    }
+  }
+
+  async distributedAnswer(key: string): Promise<any> {
+    try {
+      let unlock = await this.redisServ.unlocked(key)
+      const { userIDEnc } = unlock
+      let response = await this.queryBus.execute(new AnswerQueryRead(
+        userIDEnc
+      ))
+
+      setTimeout(async () => {
+        let messageResult = response.message
+        this.server.to(userIDEnc).emit("TheResult",
+          { message: messageResult, next:true }
+        )
+      }, 2000)
     } catch (err) {
       console.error(err.message);
     }
