@@ -6,18 +6,20 @@ export type IntroDocument = HydratedDocument<Intro>;
 
 @Schema()
 export class Intro {
-    @Prop({ required: true, type: Number })
-    userID: number
+    @Prop({ required: true, type: String })
+    userID: string
 
-    @Prop({ required: true, type: String, default: randomUUID() })
-    name: string
-
-    @Prop({ required: true, type: String, default: new Date().toLocaleString() })
-    time: string
+    @Prop({ required: false, type: Date, default: new Date().toISOString() })
+    prePublishTime: Date
 
     @Prop({ required: true, type: Boolean, default: false })
     publish: boolean
 
+    @Prop({ required: false, type: String, default: null })
+    description: string
+
+    @Prop({ required: true, type: String })
+    content: string
 }
 
 export const IntroSchema = SchemaFactory.createForClass(Intro);
