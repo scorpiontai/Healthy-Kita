@@ -7,7 +7,7 @@ export class CouchbBaseService {
     constructor(@Inject("couchbase") private readonly couchbase,
         private readonly encService: EncService,
         private readonly timeServ: TimeService) { }
-    async upset(userID: number, bucketName: string, upsertName: string, content: any, key?: [number], iv?: [number]): Promise<any> {
+    async upset(userID: any, bucketName: string, upsertName: string, content: any, key?: [number], iv?: [number]): Promise<any> {
         try {
             let message = key && iv ? await this.encService.enc(key, iv, content) : content
 
@@ -16,7 +16,7 @@ export class CouchbBaseService {
             const coll = bucket.defaultCollection()
 
 
-            await coll.upsert(`${upsertName}`, { userID: userID, message: message, timestamp: await this.timeServ.localeString() })
+            await coll.upsert(`${upsertName}`, message)
             return true
 
         } catch (err) {
@@ -29,9 +29,11 @@ export class CouchbBaseService {
         try {
             const bucket = this.couchbase.bucket(bucketName)
             const coll = bucket.defaultCollection()
-            return upsertName !== null ? coll.get(upsertName) : coll.get()
+            const get = upsertName ? coll.get(upsertName) : coll.get()
+
+            return get
         } catch (err) {
-            console.error(err.message);
+                return false
         }
     }
 
@@ -55,7 +57,7 @@ export class CouchbBaseService {
             coll.remove(upsertName)
             return true
         } catch (err) {
-            console.error(err.message);
+            console.error("couchbase error", err.message);
         }
     }
 
