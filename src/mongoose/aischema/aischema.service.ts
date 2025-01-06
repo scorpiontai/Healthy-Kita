@@ -1,18 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Intro, IntroDocument } from './schema/intro.schema';
-import { Model } from 'mongoose';
-import { TimeService } from 'src/time/time.service';
-import { RedisService } from 'src/redis/redis.service';
+import { Model } from 'mongoose';;
 @Injectable()
 export class AischemaService {
     constructor(@InjectModel(Intro.name) private introAsk: Model<IntroDocument>) { }
 
-    async registByDefault(userID: any, prePublishTime: any): Promise<any> {
+
+    async registByDefault(userID: any, uuid: string): Promise<any> {
         try {
             await this.introAsk.create({
                 userID: userID,
-                prePublishTime: prePublishTime
+                uuid: uuid
             })
             return true
         } catch (err) {
@@ -20,49 +19,19 @@ export class AischemaService {
         }
     }
 
-    async findByUUID(uuid: string, userID?: string): Promise<any> {
-        try {
-            if (userID) {
-                const findWithUID = await this.introAsk.findOne({
-                    uuid: uuid,
-                    userID: userID
-                })
-                //on debugging
-                console.debug(findWithUID)
-                return findWithUID
-            } else {
-                const find = await this.introAsk.find({
-                    uuid: uuid
-                })
-                console.debug(find)
-                return find
-            }
 
 
-        } catch (err) {
-            console.error(err.message);
-        }
-    }
-
-
-    async allFindWithUserID(userID: string): Promise<any> {
-        try {
-            const find = await this.introAsk.find({ userID: userID }).exec()
-            return find
-        } catch (err) {
-            console.error(err.message);
-        }
-    }
-
-    async addExternalInfo(userID: string,
-        description: string, publish: boolean): Promise<any> {
+    async addExternalInfo(uuid: string,
+        description: string, publish: number, commentAllow: number,
+        url: string): Promise<any> {
         try {
             await this.introAsk.updateMany({
-                userID: userID
+                uuid: uuid
             }, {
                 $set: {
                     description: description,
-                    publish: publish
+                    publish: publish,
+                    commentAllow: commentAllow
                 }
             })
             return true
