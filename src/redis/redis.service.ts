@@ -14,7 +14,7 @@ export class RedisService {
     async setWithTTL(name: string, value: any, ttl: number): Promise<any> {
         try {
             await this.redis.set(name, value, 'EX', ttl)
-            Logger.debug("set with ttl")
+            return true
         } catch (err) {
             console.error(err.message);
         }
@@ -23,7 +23,7 @@ export class RedisService {
     async setHsetwithTTL(name: string, value: any, ttl: number): Promise<any> {
         try {
             await this.redis.hset(name, value, 'EX', ttl)
-            Logger.debug("set with hset ttl")
+            return true
         } catch (err) {
             console.error(err.message);
         }
@@ -33,7 +33,7 @@ export class RedisService {
     async setHset(name: string, value: any,): Promise<any> {
         try {
             await this.redis.hset(name, value)
-            Logger.debug("set with redis hset ttl")
+            return true
         } catch (err) {
             console.error(err.message);
         }
@@ -42,6 +42,7 @@ export class RedisService {
     async set(name: string, value: any): Promise<any> {
         try {
             await this.redis.set(name, value)
+            return true
         } catch (err) {
             console.error(err.message);
         }
@@ -58,6 +59,7 @@ export class RedisService {
     async del(name: string): Promise<any> {
         try {
             await this.redis.del(name)
+            return true
         } catch (err) {
             console.error(err.message);
         }
@@ -67,9 +69,20 @@ export class RedisService {
     async lock(name: string, value: any): Promise<any> {
         try {
             const { content } = value
-                this.redis.setnx(name, JSON.stringify(content))
-                this.redis.expire(name,20)
-                Logger.debug("set lock" )
+            this.redis.setnx(name, JSON.stringify(content))
+            this.redis.expire(name, 20)
+            return true
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
+    async lockForPublish(name: string, value: any): Promise<any> {
+        try {
+            const { content } = value
+            this.redis.setnx(name, JSON.stringify(content))
+            this.redis.expire(name, 20*60)
+            return true
         } catch (err) {
             console.error(err.message);
         }
@@ -84,7 +97,7 @@ export class RedisService {
             throw err;
         }
     }
-    
+
 
     async unlock(name: string): Promise<any> {
         try {
