@@ -11,7 +11,8 @@ export class AischemaService {
         try {
             await this.introAsk.create({
                 userID: userID,
-                uuid: uuid
+                uuid: uuid,
+                url: uuid
             })
             return true
         } catch (err) {
@@ -22,11 +23,11 @@ export class AischemaService {
 
 
     async addExternalInfo(uuid: string,
-        description: string, publish: number, commentAllow: number,
+        publish: number, commentAllow: number, description: string,
         url: string): Promise<any> {
         try {
             await this.introAsk.updateMany({
-                uuid: uuid
+                uuid: uuid,
             }, {
                 $set: {
                     description: description,
@@ -38,6 +39,18 @@ export class AischemaService {
         } catch (err) {
             console.error(err.message);
             return false
+        }
+    }
+
+
+    async findOneByUUID(uuid: string): Promise<any> {
+        try {
+            const find = await this.introAsk.findOne({
+                uuid: uuid
+            }).select("-_id publish").exec()
+            return find === null ? false : true
+        } catch (err) {
+            console.error(err.message);
         }
     }
 }
