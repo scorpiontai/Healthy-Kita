@@ -1,6 +1,6 @@
 import { Controller } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
-import { Payload } from '@nestjs/microservices';
+import { EventPattern, Payload } from '@nestjs/microservices';
 import { UseAsk } from './DTO/useAsk.dto.';
 import { CalculationEvent } from 'src/submitted-handler/DTO/calculation-event.dto';
 import { RedisService } from 'src/redis/redis.service';
@@ -49,6 +49,15 @@ export class EventController {
                 new CalculationEvent(userIDEnc
                 ))
 
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+    @EventPattern("notifications")
+    async sendNotifications(@Payload() payload: any): Promise<any> {
+        try {
+            const { userID, message } = payload
+            
         } catch (err) {
             console.error(err.message);
         }
