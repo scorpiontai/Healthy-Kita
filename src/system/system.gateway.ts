@@ -139,10 +139,8 @@ export class SystemGateway implements OnModuleDestroy {
 
   async notifReceivMessage(userID: number, messages: any): Promise<any> {
     try {
-      const { message, time } = messages
       this.server.to(`notifications:${userID}`).emit("notifReceiv", {
-        message: message,
-        time: time
+        message: messages
       })
     } catch (err) {
       console.error(err.message);
