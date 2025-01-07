@@ -99,7 +99,7 @@ export class SystemGateway implements OnModuleDestroy {
 
       const { message, craetedAt } = messages
       this.server.to(userIDEnc).emit("TheQuestion",
-        { message: message, createdAt: craetedAt, next:true }
+        { message: message, createdAt: craetedAt, next: true }
       )
 
     } catch (err) {
@@ -110,22 +110,44 @@ export class SystemGateway implements OnModuleDestroy {
   async distributedAnswer(key: string): Promise<any> {
     try {
       let unlock = await this.redisServ.unlocked(key)
-      const { userIDEnc } = unlock
-      let response = await this.queryBus.execute(new AnswerQueryRead(
-        userIDEnc
-      ))
+      const { userIDEnc, UUID } = unlock
 
-      setTimeout(async () => {
-        let messageResult = response.message
-        this.server.to(userIDEnc).emit("TheResult",
-          { message: messageResult, next:true }
-        )
-      }, 2000)
+      this.server.to(userIDEnc).emit("TheResult",
+        {
+          message: {
+            UUID: UUID
+          }, next: true
+        }
+      )
     } catch (err) {
       console.error(err.message);
     }
   }
 
+  @SubscribeMessage("notifJoin")
+  async notifJoin(client: Socket, payload: any): Promise<any> {
+    try {
+      let { tokenUser } = payload
+      tokenUser = await this.BeforeInit.decodeToken(tokenUser)
+      let userID = tokenUser.userID
+
+      client.join(`notifications:${userID}`)
+    } catch (err) {
+      console.error(err.message);
+    }
+  }
+
+  async notifReceivMessage(userID: number, messages: any): Promise<any> {
+    try {
+      const { message, time } = messages
+      this.server.to(`notifications:${userID}`).emit("notifReceiv", {
+        message: message,
+        time: time
+      })
+    } catch (err) {
+      console.error(err.message);
+    }
+  }
   onModuleDestroy() {
     this.server.close()
   }
