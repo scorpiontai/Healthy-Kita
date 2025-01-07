@@ -1,24 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Res, Req, Body, Logger } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Controller, Get, Post, Res, Req, Body } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { BeforeInit, UsersService } from './users/users.service';
 import { Users } from './users/DTO/users.dto';
-import { JwtService } from '@nestjs/jwt';
-import { GeminiService } from './gemini/gemini.service';
-import * as dotenv from 'dotenv'
-import { resolve } from 'path'
-import { CommandBus, EventBus } from '@nestjs/cqrs';
 import { EncService } from './enc/enc.service';
-import { KafkaService } from './kafka/kafka.service';
-import { MESSAGES } from '@nestjs/core/constants';
 import { users } from './models/users.models';
-import { RedisService } from './redis/redis.service';
-import { Ctx, EventPattern, MessagePattern, Payload, RedisContext } from '@nestjs/microservices';
-import { retry } from 'rxjs';
-import { time } from 'console';
-import { TimeService } from './time/time.service';
-import { askCommandDTO } from './ask/asjk.command-dto';
-import { notifEvent } from './notif/DTO/notif-dt0.event';
+
 @Controller("api")
 /*
 
@@ -28,17 +14,10 @@ thank you
 
 */
 export class AppController {
-  constructor(private readonly appService: AppService,
+  constructor(
     private readonly userService: UsersService,
-    private readonly jwt: JwtService,
     private readonly enc: EncService,
-    private readonly kafka: KafkaService,
-    private readonly BeforeInit: BeforeInit,
-    private readonly redis: RedisService,
-    private readonly encServ: EncService,
-    private readonly timeServ: TimeService,
-    private readonly eventBus: EventBus,
-    private readonly commandBus: CommandBus
+    private readonly BeforeInit: BeforeInit
   ) { }
 
 
