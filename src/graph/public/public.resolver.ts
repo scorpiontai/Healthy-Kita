@@ -69,9 +69,8 @@ export class PublicResolver {
             if (publishAction != 'exists') {
                 await this.redisServ.lockForPublish(`publishBy: ${userIDEnc}`,
                     {
-                        content: {
-                            uuid: uuid
-                        }
+                        status: 200,
+                        message: `sukses untuk memposting`
                     })
                 return [
                     {
