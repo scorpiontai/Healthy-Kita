@@ -70,7 +70,7 @@ export class RedisService {
         try {
             const { content } = value
             this.redis.setnx(name, JSON.stringify(content))
-            this.redis.expire(name, 20)
+            this.redis.expire(name, 80)
             return true
         } catch (err) {
             console.error(err.message);
@@ -81,7 +81,6 @@ export class RedisService {
         try {
             const { content } = value
             this.redis.setnx(name, JSON.stringify(content))
-            this.redis.expire(name, 20*60)
             return true
         } catch (err) {
             console.error(err.message);
@@ -98,14 +97,30 @@ export class RedisService {
         }
     }
 
+    async unlockedForPublish(name: string): Promise<any> {
+        try {
+            return await this.redis.del(name)
+        } catch (err) {
+            console.error(err.message);
+            throw err;
+        }
+    }
+
+
 
     async unlock(name: string): Promise<any> {
         try {
-            setTimeout(async () => {
-                await this.redis.del(name)
-            }, 7 * 1000);
-
             return JSON.parse(await this.redis.get(name))
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
+    async lockForAccses(email: string, token: string): Promise<any> {
+        try {
+            await this.redis.setnx(`token:${email}`, token)
+            await this.redis.expire(`token:${email}`, 3500)
+            return true
         } catch (err) {
             console.error(err.message);
         }
