@@ -29,4 +29,26 @@ export class users extends Model {
 
     @Column
     yearBorn: number
+
+    @Column
+    pictures: string
+
+    @Column
+    intensActivityWeek: number
+
+    @Column
+    encInfo: string
+
+    @Column
+    oauth: boolean
+
+    @Column
+    gender: boolean
+
+    @Column
+    weight: number
+
+    @Column
+    tall: number
 }
+
