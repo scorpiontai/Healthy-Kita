@@ -9,6 +9,7 @@ import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { RedisService } from 'src/redis/redis.service';
 import { AskQueryResult } from 'src/ask/ask-query.query.dto';
 import { AnswerQueryRead } from 'src/answer/DTO/answer-query-read.dto';
+import { OauthController } from 'src/oauth/oauth.controller';
 @WebSocketGateway({
   cors: {
     origin: "*",
@@ -19,7 +20,8 @@ export class SystemGateway implements OnModuleDestroy {
     private readonly BeforeInit: BeforeInit,
     private readonly queryBus: QueryBus,
     private readonly encServ: EncService,
-    private readonly redisServ: RedisService
+    private readonly redisServ: RedisService,
+    private readonly oauth: OauthController
   ) { }
   @WebSocketServer()
   server: Server
@@ -28,12 +30,22 @@ export class SystemGateway implements OnModuleDestroy {
   @SubscribeMessage("join")
   async set(client: Socket, payload: any): Promise<any> {
     try {
-      let { tokenUser, encKey, ivKey, } = payload.init
-      tokenUser = await this.BeforeInit.decodeToken(tokenUser)
+      let { tokenUser, encKey, ivKey } = payload.init
+      let userID
+      let encID
+      if (!tokenUser.includes("@")) {
+        tokenUser = await this.BeforeInit.decodeToken(tokenUser)
+        userID = tokenUser.userID
+      } else {
+        const email = await this.redisServ.get(`token:${tokenUser}`)
+        const oauth = await this.oauth.HandlingIfAlreadyHaveToken(email)
+        const { ID } = oauth
+        userID = ID
 
-      let userID = tokenUser.userID
-      const encID = await this.encServ.enc(encKey, ivKey, userID.toString())
+      }
+      encID = await this.encServ.enc(encKey, ivKey, userID.toString())
       client.join(encID)
+
 
       return { status: true }
     } catch (err) {
@@ -44,24 +56,41 @@ export class SystemGateway implements OnModuleDestroy {
 
   @SubscribeMessage("start")
   async startOfAudit(client: Socket, payload: any): Promise<any> {
+    let { tokenUser, encKey, ivKey } = payload.init
+    let userID
+    let encID
+
     try {
+      if (!tokenUser.includes("@")) {
+        tokenUser = await this.BeforeInit.decodeToken(tokenUser)
+        userID = tokenUser.userID
+      } else {
+        const email = await this.redisServ.get(`token:${tokenUser}`)
+        const oauth = await this.oauth.HandlingIfAlreadyHaveToken(email)
+        const { ID } = oauth
+        userID = ID
+      }
 
-      let { tokenUser, encKey, ivKey, } = payload.init
-      tokenUser = await this.BeforeInit.decodeToken(tokenUser)
-      let userID = tokenUser.userID
+      encID = await this.encServ.enc(encKey, ivKey, userID.toString())
+      const check = await this.redisServ.get(`start:${encID}`)
 
+      if (!check) {
+        let commandBus =
+          await this.commandBus.execute(
+            new askCommandDTO(
+              userID,
+              encKey,
+              ivKey))
 
-      let commandBus =
-        await this.commandBus.execute(
-          new askCommandDTO(
-            userID,
-            encKey,
-            ivKey))
-
-      this.server.to(commandBus.client)
-        .emit("responseStart", {
-
-        })
+        this.server.to(commandBus.client)
+          .emit("responseStart", {
+            message: commandBus.message
+          })
+      } else {
+        this.server.to(encID).emit("responseStart",
+          { status: 409 }
+        )
+      }
     } catch (err) {
       console.error(err.message);
     }
@@ -70,11 +99,23 @@ export class SystemGateway implements OnModuleDestroy {
   @SubscribeMessage("submitted")
   async submitted(@MessageBody() payload: any): Promise<any> {
     try {
-
       let { tokenUser, encKey, ivKey } = payload.init
+      let userID
+      let encID
+
+      if (!tokenUser.includes("@")) {
+        tokenUser = await this.BeforeInit.decodeToken(tokenUser)
+        userID = tokenUser.userID
+      } else {
+        const email = await this.redisServ.get(`token:${tokenUser}`)
+        const oauth = await this.oauth.HandlingIfAlreadyHaveToken(email)
+        const { ID } = oauth
+        userID = ID
+        console.debug("user id is", userID)
+      }
+      encID = await this.encServ.enc(encKey, ivKey, userID.toString())
       let question = payload.answer
-      tokenUser = await this.BeforeInit.decodeToken(tokenUser)
-      let userID = tokenUser.userID
+
 
       await this.commandBus.execute(
         new AnswerCommand(
@@ -112,6 +153,12 @@ export class SystemGateway implements OnModuleDestroy {
       let unlock = await this.redisServ.unlocked(key)
       const { userIDEnc, UUID } = unlock
 
+      const check = await this.redisServ.get(`start:${userIDEnc}`)
+
+      if (check) {
+        await this.redisServ.del(`start:${userIDEnc}`)
+      }
+
       this.server.to(userIDEnc).emit("TheResult",
         {
           message: {
@@ -127,11 +174,22 @@ export class SystemGateway implements OnModuleDestroy {
   @SubscribeMessage("notifJoin")
   async notifJoin(client: Socket, payload: any): Promise<any> {
     try {
-      let { tokenUser } = payload
-      tokenUser = await this.BeforeInit.decodeToken(tokenUser)
-      let userID = tokenUser.userID
+      let { tokenUser, encKey, ivKey } = payload.init
+      let userID
+      let encID
+      if (!tokenUser.includes("@")) {
+        tokenUser = await this.BeforeInit.decodeToken(tokenUser)
+        userID = tokenUser.userID
+      } else {
+        const email = await this.redisServ.get(`token:${tokenUser}`)
+        const oauth = await this.oauth.HandlingIfAlreadyHaveToken(email)
+        const { ID } = oauth
+        userID = ID
+      }
+      encID = await this.encServ.enc(encKey, ivKey, userID.toString())
 
       client.join(`notifications:${userID}`)
+      console.debug("userid is", userID)
     } catch (err) {
       console.error(err.message);
     }
