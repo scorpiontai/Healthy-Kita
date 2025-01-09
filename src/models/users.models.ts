@@ -40,14 +40,14 @@ export class users extends Model {
     encInfo: string
 
     @Column
-    oauth: boolean
-
-    @Column
     gender: boolean
 
     @Column
     weight: number
 
+    @Column 
+    oauth: boolean 
+    
     @Column
     tall: number
 }
