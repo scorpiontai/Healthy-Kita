@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Res, Req, Body } from '@nestjs/common';
+import { Controller, Get, Post, Res, Req, Body, UseGuards, Query, Logger } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { BeforeInit, UsersService } from './users/users.service';
 import { Users } from './users/DTO/users.dto';
 import { EncService } from './enc/enc.service';
 import { users } from './models/users.models';
-
+import { HealthAddGuard } from './health-add/health-add.guard'
 @Controller("api")
 /*
 
@@ -59,7 +59,7 @@ export class AppController {
   }
 
 
-  @Post("recovery/password") //request recovery password
+  @Post("recovery/password")
   async recoveryPassword(@Body() body: any, @Req() req: Request): Promise<any> {
     try {
       const { tokenUser } = req.cookies
@@ -105,6 +105,53 @@ export class AppController {
     try {
       const { tokenUser } = req.cookies
       return { tokenUser: tokenUser }
+    } catch (err) {
+      console.error(err.message);
+    }
+  }
+
+
+  @UseGuards(HealthAddGuard)
+  @Get("input/health/info")
+  // curl http://localhost:6060/api/input/health/info  -b "tokenUser=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyTmFtZSI6InVzZXJUZXN0IiwiZW1haWwiOiJtaWtoYWVsamhvbjIyQGdtYWlsLmNvbSIsImlhdCI6MTczNjM3NTU2NywiZXhwIjoxNzM3MjM5NTY3fQ.j4CtNrMbwkO4Sy1ZXmeBf4RXGSnitLFC53BZqmsHoOc"
+  async heatlthAdd(@Body() body: any, @Req() req: Request): Promise<any> {
+    const { birthdate, intensActivity, weight, tall } = body
+    let { tokenUser } = req.cookies
+    tokenUser = await this.BeforeInit.decodeToken(tokenUser)
+    let { userID } = tokenUser
+    try {
+      /*
+      Logger.debug("user id health is ",
+        userID
+      )
+
+      await users.update({
+        birthdate: birthdate,
+        intensActivityWeek: intensActivity,
+        weight: weight,
+        tall: tall
+      }, {
+        where: {
+          ID: userID
+        }
+      })
+        */
+      return {
+        status: 200,
+        message: `sukses untuk mengedit`
+      }
+    } catch (err) {
+      console.error(err.message);
+    }
+  }
+
+  @Post("oauth/get/credentials")
+  async oauth(@Req() req: Request, @Body() body: any): Promise<any> {
+    try {
+      const { accessToken } = req.headers
+      const { encKey, ivKey } = body
+
+      
     } catch (err) {
       console.error(err.message);
     }
