@@ -4,8 +4,7 @@ import { users } from 'src/models/users.models';
 import axios from 'axios'
 import { RedisService } from 'src/redis/redis.service';
 import { EncService } from 'src/enc/enc.service';
-import { Response } from 'express'
-import { JwtService } from '@nestjs/jwt';
+import { Response, Request } from 'express'
 
 @Controller('oauth')
 export class OauthController {
@@ -47,23 +46,25 @@ export class OauthController {
             console.error(err.message);
         }
     }
-
     @Get("google/callback")
     @UseGuards(AuthGuard('google'))
-    async googleAuthRedirect(@Req() req, @Res() res: Response): Promise<any> {
+    async googleAuthRedirect(@Req() req: any, @Res() res: Response): Promise<any> {
         try {
-            let { accessToken, firstName, lastName, email, picture } = req.user
+            let { accessToken, firstName, lastName, email, picture } = req.user;
 
-            lastName = lastName.replace(/\s+/g, '_').toLowerCase()
+            lastName = lastName.replace(/\s+/g, '_').toLowerCase();
+
             const findByDB = await users.findOne({
                 where: {
                     email: email,
                     encInfo: 1,
-                }, attributes: ['ID']
-            })
+                },
+                attributes: ['ID']
+            });
 
             if (!findByDB) {
-                const username = `${lastName}_${new Date().valueOf()}`
+                const username = `${lastName}_${new Date().valueOf()}`;
+
                 await users.create({
                     fullName: `${firstName} ${lastName}`,
                     username: username,
@@ -71,33 +72,41 @@ export class OauthController {
                     pictures: picture,
                     encInfo: 1,
                     verify: 1
+                });
+
+                const getKey = await this.enc.set();
+                const { key, iv } = getKey;
+
+                await this.redis.lockForAccses(email, accessToken)
+                await users.update({
+                    oauth: 1
+                }, { where: { email: email } })
+
+                axios.post(`http://localhost:6060/api/oauth/get/credentials`, {
+                    encKey: key,
+                    ivKey: iv
+                },{
+                    withCredentials: true
                 })
 
-                let getKey = await this.enc.set()
-                const { key, iv } = getKey
-
-                setTimeout(async () => {
-                    await this.redis.lockForAccses(email, accessToken)
-                }, 3000)
-
-                return res.status(200).json({ status: 200, encKey: key, ivKey: iv })
-            } else {
-                const token = await this.redis.get(`token:${email}`)
-                const beforeVerif = await this.HandlingIfAlreadyHaveToken(token)
-
-                if (beforeVerif) {
-                    return beforeVerif ? res.status(200).json({ status: 200 }) : res.status(500).json({ staus: 500 })
-                } else {
-                    await this.redis.del(`token:${email}`)
-                    setTimeout(async () => {
-                        await this.redis.lockForAccses(email, accessToken)
-                        res.status(200).json({ status: 200 })
-                    }, 3000)
-                }
+                return res.redirect(`http://localhost:8080/home`)
             }
+
+            const existingToken = await this.redis.get(`token:${email}`);
+            if (existingToken) {
+                const check = await this.HandlingIfAlreadyHaveToken(existingToken);
+                if (check.status) {
+                    await this.redis.lockForAccses(email, accessToken)
+                    return res.redirect(`http://localhost:8080/home`)
+                }
+            } else {
+                await this.redis.lockForAccses(email, accessToken)
+                return res.redirect(`http://localhost:8080/home`)
+            }
+
         } catch (err) {
             console.error(err.message);
+            return res.status(500).json({ error: "Internal Server Error" });
         }
     }
 }
-
