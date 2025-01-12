@@ -11,6 +11,7 @@ import { GeneralMutationSchema } from '../DTO/general.mutation';
 import { addExternalInfo } from 'src/post/DTO/addExternalPublish.share.dto';
 import { KafkaService } from 'src/kafka/kafka.service';
 import { DraftPost } from 'src/DraftPost/DTO/DraftPost.dto';
+import { Logger } from '@nestjs/common';
 @Resolver(() => GeneralResolverSchema)
 export class PublicResolver {
     constructor(
@@ -24,7 +25,8 @@ export class PublicResolver {
 
 
     @Query(() => [GeneralResolverSchema])
-    async ListOffAllAudit(@Args('limit', { type: () => Int }) limit: number, @Context() context: { req: Request }): Promise<any> {
+    async ListOffAllAudit(@Args('limit', { type: () => Int }) limit: number,
+        @Args("skip", { type: () => Int }) skip: number, @Context() context: { req: Request }): Promise<any> {
         try {
             let { enckey, ivkey }: any = context.req.headers
             enckey = JSON.parse(enckey)
@@ -32,11 +34,15 @@ export class PublicResolver {
 
             let { tokenUser } = context.req.cookies
             tokenUser = await this.BeforeInit.decodeToken(tokenUser)
+            console.debug("token user", tokenUser)
             const userIDEnc = await this.encServ.enc(enckey, ivkey, tokenUser.userID.toString())
 
             const listOfAll =
                 await this.queryBus.execute(
-                    new AuditList(userIDEnc, limit))
+                    new AuditList(userIDEnc, limit, skip))
+
+
+            console.debug("user id enc", userIDEnc)
 
             return listOfAll
         } catch (err) {
@@ -59,19 +65,18 @@ export class PublicResolver {
 
             const userIDEnc = await this.encServ.enc(enckey, ivkey,
                 tokenUser.userID.toString())
-
             const publishAction = await this.commandBus.
                 execute(new PublishPrepare(userIDEnc, uuid))
 
-            console.debug("publish action ia",
-                publishAction
-            )
+
             if (publishAction != 'exists') {
                 await this.redisServ.lockForPublish(`publishBy: ${userIDEnc}`,
                     {
-                        status: 200,
-                        message: `sukses untuk memposting`
-                    })
+                        content: {
+                            uuid: uuid
+                        }
+                    }
+                )
                 return [
                     {
                         status: 200,
@@ -109,7 +114,6 @@ export class PublicResolver {
         ) url: string,
         @Context() context: { req: Request }): Promise<any> {
         try {
-            const cookies = context.req.cookies
             let { enckey, ivkey }: any = context.req.headers
             enckey = JSON.parse(enckey)
             ivkey = JSON.parse(ivkey)
@@ -119,6 +123,16 @@ export class PublicResolver {
 
             const userIDEnc = await this.encServ.enc(enckey, ivkey,
                 tokenUser.userID.toString())
+
+            // this is only for testing
+            await this.redisServ.lockForPublish(`publishBy: ${userIDEnc}`,
+                {
+                    content: {
+                        uuid: '65876486-acea-4e96-9260-7ead968a0974'
+                    }
+                }
+            )
+
             const unlock = await this.redisServ.unlock(`publishBy: ${userIDEnc}`)
             const { uuid } = unlock
 
@@ -134,10 +148,11 @@ export class PublicResolver {
                         url
                     )
                 )
-            console.debug("action is", action, userIDEnc)
-            if (action) {
+
+
+
+            if (action.status) {
                 await this.redisServ.unlockedForPublish(`publishBy: ${userIDEnc}`)
-                // this notif action
                 await this.kafkaServ.emitter("notifications", {
                     userID: tokenUser.userID,
                     message: `Anda baru saja mempublish postingan audit anda.
@@ -145,16 +160,25 @@ export class PublicResolver {
                 })
                 return {
                     status: 200,
-                    message: `sukses melakukan aksi`,
+                    message: action.message
+                }
+            } else {
+                return {
+                    status: 409,
+                    message: action.message
                 }
             }
         } catch (err) {
-            console.error(err.message);
+            Logger.error("edit Pub func error",
+                err.message)
         }
     }
 
     @Query(() => [GeneralResolverSchema])
-    async inPostList(@Context() context: { req: Request }): Promise<any> {
+    async inPostList(
+        @Args("limit", { type: () => Int }) limit: number,
+        @Args("skip", { type: () => Int }) skip: number,
+        @Context() context: { req: Request }): Promise<any> {
         try {
             let { enckey, ivkey }: any = context.req.headers
             enckey = JSON.parse(enckey)
@@ -164,11 +188,13 @@ export class PublicResolver {
             tokenUser = await this.BeforeInit.decodeToken(tokenUser)
             const userIDEnc = await this.encServ.enc(enckey, ivkey, tokenUser.userID.toString())
 
+            console.debug(userIDEnc)
             const allList =
                 await this.queryBus.execute(
-                    new PublishPrepare({ ID: userIDEnc, limit: 10 }, "null")
+                    new PublishPrepare({ ID: userIDEnc, limit: limit }, "null")
                 )
-
+            console.debug("all list",
+                allList)
             return allList
         } catch (err) {
             console.error(err.message);
@@ -185,13 +211,16 @@ export class PublicResolver {
 
             let { tokenUser } = context.req.cookies
             tokenUser = await this.BeforeInit.decodeToken(tokenUser)
-            const userIDEnc = await this.encServ.enc(enckey, ivkey, tokenUser.userID.toString())
+            console.debug(tokenUser.userID.toString())
 
+            const userIDEnc = await this.encServ.enc(enckey, ivkey, tokenUser.userID.toString())
             const get = await this.queryBus.execute(
                 new DraftPost(`publishBy: ${userIDEnc}`)
             )
 
-            return get
+            return [{
+                uuid: get
+            }]
         } catch (err) {
             console.error(err.message);
         }
