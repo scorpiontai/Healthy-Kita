@@ -1,7 +1,10 @@
-import { IsUUID, IsNumber } from "class-validator"
+import { IsUUID, IsNumber, IsString } from "class-validator"
 export class CommentAllPost {
     @IsUUID()
     uuidPost: string
+
+    @IsString()
+    urlName: string
 
     @IsNumber()
     limit: number
@@ -11,6 +14,6 @@ export class CommentAllPost {
         limit: number
     ) {
         this.uuidPost = uuidPost,
-        this.limit = limit
+            this.limit = limit
     }
 }
