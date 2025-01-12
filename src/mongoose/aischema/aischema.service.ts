@@ -23,16 +23,19 @@ export class AischemaService {
 
 
     async addExternalInfo(uuid: string,
-        publish: number, commentAllow: number, description: string,
+        publish: number, commentAllow: number,
+        title: string, description: string,
         url: string): Promise<any> {
         try {
             await this.introAsk.updateMany({
                 uuid: uuid,
             }, {
                 $set: {
+                    title: title,
                     description: description,
                     publish: publish,
-                    commentAllow: commentAllow
+                    commentAllow: commentAllow,
+                    url: url
                 }
             })
             return true
@@ -47,8 +50,35 @@ export class AischemaService {
         try {
             const find = await this.introAsk.findOne({
                 uuid: uuid
-            }).select("-_id publish").exec()
-            return find === null ? false : true
+            }).select("-_id -__v -userID ").exec()
+            return find === null ? false : find
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
+    async findAllByUUID(userID: string, limit: number): Promise<any> {
+        try {
+            const find = await this.introAsk.find({
+                userID: userID, publish: 1
+            }).select("-_id -userID").limit(limit).exec()
+            return find
+        } catch (err) {
+            console.error(err.message);
+        }
+    }
+
+    async findUrlName(urlName: string): Promise<any> {
+        try {
+            const find = await this.introAsk.findOne({
+                url: urlName
+            }).exec()
+
+            if (find.url) {
+                return true
+            } else {
+                return false
+            }
         } catch (err) {
             console.error(err.message);
         }
