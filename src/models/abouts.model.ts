@@ -15,14 +15,13 @@ export class abouts extends Model {
     @Column
     ranking: number
 
-    @Column
-    post: string //current post user
-
-    
     @ForeignKey(() => users)
     userID: number
 
 
     @BelongsTo(() => users)
     users: users
+
+    @Column
+    supportLabel: number
 }

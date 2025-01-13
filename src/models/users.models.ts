@@ -1,8 +1,7 @@
 
 import { Table, Column, Model, HasMany } from 'sequelize-typescript';
 import { abouts } from './abouts.model';
-import { Col } from 'sequelize/types/utils';
-
+import { Col } from 'sequelize/types/utils'
 
 @Table({ timestamps: false })
 export class users extends Model {
@@ -34,7 +33,7 @@ export class users extends Model {
     pictures: string
 
     @Column
-    intensActivityWeek: number
+    intensActivityWeek: string
 
     @Column
     encInfo: string
@@ -45,9 +44,9 @@ export class users extends Model {
     @Column
     weight: number
 
-    @Column 
-    oauth: boolean 
-    
+    @Column
+    oauth: boolean
+
     @Column
     tall: number
 }
