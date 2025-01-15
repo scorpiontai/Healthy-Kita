@@ -18,7 +18,6 @@ export class abouts extends Model {
     @ForeignKey(() => users)
     userID: number
 
-
     @BelongsTo(() => users)
     users: users
 

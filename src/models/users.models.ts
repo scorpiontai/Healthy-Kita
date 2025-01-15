@@ -1,5 +1,5 @@
 
-import { Table, Column, Model, HasMany } from 'sequelize-typescript';
+import { Table, Column, Model, HasMany, HasOne } from 'sequelize-typescript';
 import { abouts } from './abouts.model';
 import { Col } from 'sequelize/types/utils'
 
@@ -36,7 +36,7 @@ export class users extends Model {
     intensActivityWeek: string
 
     @Column
-    encInfo: string
+    encInfo: number
 
     @Column
     gender: boolean
@@ -49,5 +49,9 @@ export class users extends Model {
 
     @Column
     tall: number
+
+    @HasOne(() => abouts)
+    abouts: abouts
+
 }
 
